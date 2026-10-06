@@ -6,7 +6,10 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.database import get_db, engine
+from app.database import get_db, engine, Base
+import app.models  # Ensure all models are registered
+from app.services.service_catalog import ServiceCatalogService
+from app.database import AsyncSessionLocal
 
 # Configure logging
 logging.basicConfig(
@@ -18,15 +21,22 @@ logger = logging.getLogger("insta.app")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager: connects to DB on startup, cleans up on shutdown."""
+    """Application lifespan manager: connects to DB, creates tables, seeds defaults."""
     logger.info("Starting up %s in %s mode...", settings.APP_NAME, settings.ENVIRONMENT)
     try:
-        # Verify database connection
+        # Create tables on startup in development
         async with engine.begin() as conn:
-            await conn.execute(text("SELECT 1"))
-        logger.info("Successfully connected to PostgreSQL database.")
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables initialized successfully.")
+
+        # Seed default consulting services
+        async with AsyncSessionLocal() as session:
+            seeded = await ServiceCatalogService.seed_default_services(session)
+            if seeded:
+                logger.info("Seeded %d default consulting services.", len(seeded))
+
     except Exception as exc:
-        logger.error("Failed to connect to PostgreSQL database on startup: %s", exc)
+        logger.error("Failed to initialize database on startup: %s", exc)
 
     yield
 

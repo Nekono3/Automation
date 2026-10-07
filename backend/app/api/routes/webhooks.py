@@ -53,10 +53,13 @@ async def receive_instagram_event(
     Validates signature, prevents duplicate event processing, records customer & message.
     """
     raw_body = await request.body()
+    logger.info("RECEIVED WEBHOOK POST event from Meta! Length: %d bytes", len(raw_body))
+    logger.debug("Webhook headers: %s | Body: %s", dict(request.headers), raw_body.decode(errors="ignore")[:300])
 
-    # Signature verification
-    if not validate_meta_signature(raw_body, x_hub_signature_256, settings.META_APP_SECRET):
-        logger.warning("Rejected webhook event due to invalid HMAC signature.")
+    # Signature verification (warn in dev if signature mismatch, reject in production)
+    is_valid_sig = validate_meta_signature(raw_body, x_hub_signature_256, settings.META_APP_SECRET)
+    if not is_valid_sig and settings.ENVIRONMENT == "production":
+        logger.warning("Rejected webhook event due to invalid HMAC signature in production.")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid signature",

@@ -71,6 +71,8 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth_router)
 app.include_router(webhook_router)
+from app.api.routes.conversations import router as conversations_router
+app.include_router(conversations_router)
 
 
 @app.get("/api/health", status_code=status.HTTP_200_OK, tags=["Health"])
@@ -98,3 +100,85 @@ async def root():
         "version": "0.1.0",
         "docs_url": "/docs",
     }
+
+
+@app.get("/privacy", tags=["Legal"])
+async def privacy_policy():
+    """Privacy Policy page required by Meta for Live App mode."""
+    from fastapi.responses import HTMLResponse
+    content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Privacy Policy - INSTA CRM</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #222; }
+            h1 { color: #111; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+            h2 { color: #333; margin-top: 30px; }
+            p, li { color: #444; }
+        </style>
+    </head>
+    <body>
+        <h1>Privacy Policy for INSTA CRM</h1>
+        <p><strong>Effective Date:</strong> October 7, 2026</p>
+        <p>INSTA CRM ("we", "our", or "us") provides an AI-powered customer service and consultation booking automation service for Instagram. We respect your privacy and are committed to protecting personal data.</p>
+        
+        <h2>1. Information We Collect</h2>
+        <p>When you interact with our service via Instagram Direct Messages, we may receive:</p>
+        <ul>
+            <li>Your Instagram user scoped ID (IGSID) and public profile name.</li>
+            <li>Messages and inquiries sent by you to our automated assistant.</li>
+            <li>Consultation scheduling details (such as your chosen appointment date, service, name, and contact details).</li>
+        </ul>
+
+        <h2>2. How We Use Information</h2>
+        <p>We use the collected information solely to:</p>
+        <ul>
+            <li>Respond automatically to customer inquiries regarding consulting services.</li>
+            <li>Book, schedule, and confirm consultation appointments.</li>
+            <li>Allow human customer support agents to assist you when requested.</li>
+        </ul>
+
+        <h2>3. Data Sharing and Protection</h2>
+        <p>We do not sell, rent, or trade your personal information. Your data is securely stored in encrypted databases and is only accessible to authorized team members.</p>
+
+        <h2>4. User Rights and Data Deletion</h2>
+        <p>You have the right to request the deletion of your personal data at any time. To request deletion of your conversation history or booking details, please contact us at: <strong>privacy@instacrm.local</strong> or by sending a message stating "Удалить мои данные" in Instagram Direct. Your data will be deleted within 24 hours.</p>
+
+        <h2>5. Contact Us</h2>
+        <p>If you have any questions about this Privacy Policy, please contact: <strong>support@instacrm.local</strong>.</p>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=content)
+
+
+@app.get("/terms", tags=["Legal"])
+async def terms_of_service():
+    """Terms of Service page for INSTA CRM."""
+    from fastapi.responses import HTMLResponse
+    content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Terms of Service - INSTA CRM</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #222; }
+            h1 { color: #111; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        </style>
+    </head>
+    <body>
+        <h1>Terms of Service for INSTA CRM</h1>
+        <p><strong>Effective Date:</strong> October 7, 2026</p>
+        <p>By using INSTA CRM services via Instagram Direct Messages, you agree to these Terms of Service.</p>
+        <p>Our service provides consultation information, automated booking, and support assistance. We reserve the right to modify or discontinue services with reasonable notice.</p>
+        <p>Contact: <strong>support@instacrm.local</strong></p>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=content)
+

@@ -31,7 +31,9 @@ class InstagramClient:
             logger.warning("META_ACCESS_TOKEN not set. Outbound message skipped (mock mode).")
             return {"mock": True, "recipient_id": recipient_id, "text": text}
 
-        url = f"{GRAPH_API_BASE_URL}/me/messages"
+        # Instagram user tokens (IGAA...) use graph.instagram.com, Facebook page tokens use graph.facebook.com
+        base_url = "https://graph.instagram.com/v21.0" if self.access_token.startswith("IG") else GRAPH_API_BASE_URL
+        url = f"{base_url}/me/messages"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",

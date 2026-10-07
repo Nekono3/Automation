@@ -29,7 +29,15 @@ def parse_instagram_payload(payload: Dict[str, Any]) -> List[InstagramMessageEve
         return events
 
     for entry in payload.get("entry", []):
-        for messaging_item in entry.get("messaging", []):
+        # 1. Standard format: entry.messaging
+        items = list(entry.get("messaging", []))
+
+        # 2. Changes format (v21.0 / test console): entry.changes
+        for change in entry.get("changes", []):
+            if change.get("field") == "messages" and isinstance(change.get("value"), dict):
+                items.append(change["value"])
+
+        for messaging_item in items:
             try:
                 sender_id = str(messaging_item.get("sender", {}).get("id", ""))
                 recipient_id = str(messaging_item.get("recipient", {}).get("id", ""))
@@ -37,7 +45,6 @@ def parse_instagram_payload(payload: Dict[str, Any]) -> List[InstagramMessageEve
 
                 message_data = messaging_item.get("message")
                 if not message_data:
-                    # Could be read receipts or postbacks, skip non-message events for now
                     continue
 
                 message_id = message_data.get("mid", "")

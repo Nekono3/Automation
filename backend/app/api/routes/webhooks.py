@@ -147,7 +147,15 @@ async def receive_instagram_event(
                     conv.id,
                     (event.text or "")[:40],
                 )
-                # If conversation is in 'ai' mode, background task will trigger AI responder (Phase 6)
+                # If conversation is in 'ai' mode, trigger AI responder in background
+                if conv.mode == "ai" and event.text:
+                    from app.services.ai_responder import process_and_reply_background
+                    background_tasks.add_task(
+                        process_and_reply_background,
+                        customer_id=customer.id,
+                        conversation_id=conv.id,
+                        incoming_text=event.text,
+                    )
 
             processed_count += 1
 

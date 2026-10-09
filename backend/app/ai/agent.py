@@ -96,15 +96,17 @@ class MistralConsultingAgent:
             chat_history.append({"role": "user", "content": incoming_message})
 
         # 4. Construct grounded system prompt
+        channel = conversation.channel or "instagram"
         context_prompt = (
             f"{SYSTEM_CONSULTING_PROMPT}\n\n"
             f"АКТУАЛЬНЫЕ УСЛУГИ КОМПАНИИ (данные из базы данных):\n{services_text}\n\n"
-            f"ДАННЫЕ О КЛИЕНТЕ:\n"
+            f"КОНТЕКСТ ДИАЛОГА:\n"
+            f"- Канал обращения: {'WhatsApp' if channel == 'whatsapp' else 'Instagram Direct'}\n"
             f"- Имя/Ник: {customer.name or customer.username or 'Клиент'}\n"
-            f"- Телефон: {customer.phone or 'не указан'}\n"
-            f"- Instagram ID: {customer.instagram_id}\n\n"
+            f"- Телефон / WhatsApp ID: {customer.phone or customer.whatsapp_id or 'не указан'}\n"
+            f"- Instagram ID: {customer.instagram_id or 'не указан'}\n\n"
             f"Инструкция: Отвечай клиенту кратко, полезно и доброжелательно. "
-            f"Если клиент выбирает услугу, спроси его имя и телефон, чтобы оформить запись."
+            f"Если клиент выбирает услугу, подтверди бронирование и согласуй детали."
         )
 
         messages = [

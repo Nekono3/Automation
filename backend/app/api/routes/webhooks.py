@@ -333,3 +333,86 @@ async def receive_whatsapp_event(
 
     await db.commit()
     return {"status": "ok", "events_processed": processed_count}
+
+
+# =========================================================================
+# WHATSAPP BAILEYS QR BRIDGE WEBHOOK
+# =========================================================================
+
+class WhatsAppBridgePayload(BaseModel):
+    sender_phone: str
+    sender_name: Optional[str] = None
+    text: str
+    message_id: Optional[str] = None
+
+
+@router.post("/whatsapp-bridge")
+async def receive_whatsapp_bridge_event(
+    payload: WhatsAppBridgePayload,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Receives incoming WhatsApp message from the local Baileys bridge microservice.
+    """
+    clean_phone = payload.sender_phone.replace("+", "").strip()
+    logger.info("Received WhatsApp bridge message from %s: %s", clean_phone, payload.text[:40])
+
+    # 1. Deduplication via message_id check
+    if payload.message_id:
+        existing_event = await db.execute(
+            select(WebhookEvent).where(WebhookEvent.event_id == payload.message_id)
+        )
+        if existing_event.scalar_one_or_none():
+            logger.info("Skipping already processed WhatsApp bridge message ID: %s", payload.message_id)
+            return {"status": "ok", "duplicate": True}
+
+        db.add(
+            WebhookEvent(
+                event_id=payload.message_id,
+                source="whatsapp_bridge",
+                payload={"phone": clean_phone, "text": payload.text},
+                status="processed",
+            )
+        )
+
+    # 2. Get or create customer by phone number
+    customer, _ = await CustomerService.get_or_create_by_whatsapp_id(
+        db=db,
+        whatsapp_id=clean_phone,
+        phone=clean_phone,
+        name=payload.sender_name or f"WhatsApp {clean_phone[-4:]}",
+    )
+
+    # 3. Get or create conversation with channel='whatsapp'
+    conv, _ = await ConversationService.get_or_create_conversation(
+        db=db,
+        customer_id=customer.id,
+        channel="whatsapp",
+    )
+
+    # 4. Record inbound message
+    msg, is_new = await ConversationService.record_message(
+        db=db,
+        conversation_id=conv.id,
+        customer_id=customer.id,
+        channel="whatsapp",
+        direction="inbound",
+        sender_type="customer",
+        text=payload.text,
+        external_message_id=payload.message_id,
+    )
+
+    await db.commit()
+
+    if is_new and conv.mode == "ai" and payload.text:
+        from app.services.ai_responder import process_and_reply_background
+        background_tasks.add_task(
+            process_and_reply_background,
+            customer_id=customer.id,
+            conversation_id=conv.id,
+            incoming_text=payload.text,
+        )
+
+    return {"status": "ok", "conversation_id": conv.id}
+

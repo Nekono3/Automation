@@ -37,6 +37,21 @@ class WhatsAppClient:
         """
         clean_phone = to_phone.replace("+", "").replace(" ", "").replace("-", "")
 
+        # 1. First attempt delivery via local Baileys QR bridge (if connected)
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as bridge_client:
+                bridge_resp = await bridge_client.post(
+                    "http://127.0.0.1:3001/send",
+                    json={"to": clean_phone, "text": text},
+                )
+                if bridge_resp.status_code == 200:
+                    data = bridge_resp.json()
+                    logger.info("Successfully sent WhatsApp message via local QR bridge to %s (id: %s)", clean_phone, data.get("message_id"))
+                    return data
+        except Exception as bridge_exc:
+            logger.debug("Local WhatsApp bridge unavailable (%s). Falling back to Cloud API.", bridge_exc)
+
+        # 2. Fall back to Meta Cloud API
         if not self.access_token:
             logger.warning("WHATSAPP_ACCESS_TOKEN not set. WhatsApp message skipped (mock mode).")
             return {"mock": True, "to": clean_phone, "text": text}

@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Customer, Booking } from '@/lib/types';
 import { 
-  Search, User, Phone, Mail, AtSign, Calendar, MessageSquare, 
-  X, Check, Edit2, Tag, Clock, ArrowRight, Shield, Sparkles
+  Search, Phone, Mail, AtSign, Calendar, MessageSquare, 
+  X, Check, Edit2, Clock, ArrowRight
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -17,7 +17,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   
-  // Selected customer for "Подробнее" modal/drawer
+  // Selected customer for drawer
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerBookings, setCustomerBookings] = useState<Booking[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,7 +50,6 @@ export default function CustomersPage() {
       email: customer.email || '',
       notes: customer.notes || '',
     });
-    // Fetch bookings for this customer
     try {
       const bookings = await api.getBookings({ customer_id: customer.id });
       setCustomerBookings(bookings);
@@ -81,19 +80,19 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="p-8 h-full flex flex-col bg-[#070b14] overflow-hidden">
+    <div className="p-8 h-full flex flex-col bg-[#F8FAFC] overflow-hidden text-slate-900">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase tracking-widest">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-[#283876] border border-blue-100">
               База клиентов
             </span>
-            <span className="text-xs text-slate-500">•</span>
-            <span className="text-xs text-slate-400">Всего: {customers.length}</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-xs text-slate-500 font-medium">Всего: {customers.length}</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white font-mono">
-            Клиентский реестр
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Клиентский реестр TC
           </h1>
         </div>
 
@@ -104,44 +103,44 @@ export default function CustomersPage() {
             placeholder="Поиск по имени, телефону, @нику..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-900/90 border border-slate-700/70 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner"
+            className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#283876] shadow-sm transition-colors"
           />
-          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-3 text-slate-500 hover:text-slate-300">
-              <X className="w-4 h-4" />
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer">
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
       </div>
 
       {/* Main Table Container */}
-      <div className="flex-1 bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden flex flex-col shadow-2xl backdrop-blur-md">
+      <div className="flex-1 bg-white border border-slate-200/90 rounded-2xl overflow-hidden flex flex-col shadow-sm">
         <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-900/90 text-slate-400 border-b border-slate-800 font-mono text-xs uppercase tracking-wider sticky top-0 z-10">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-wider sticky top-0 z-10 font-bold">
               <tr>
-                <th className="px-6 py-4 font-semibold">Клиент</th>
-                <th className="px-6 py-4 font-semibold">Instagram</th>
-                <th className="px-6 py-4 font-semibold">Телефон</th>
-                <th className="px-6 py-4 font-semibold">Email</th>
-                <th className="px-6 py-4 font-semibold">Активность</th>
-                <th className="px-6 py-4 font-semibold text-right">Действие</th>
+                <th className="px-6 py-4">Клиент</th>
+                <th className="px-6 py-4">Instagram</th>
+                <th className="px-6 py-4">Телефон</th>
+                <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">Активность</th>
+                <th className="px-6 py-4 text-right">Действие</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-16 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                      <span>Загрузка клиентских данных...</span>
+                      <div className="w-5 h-5 border-2 border-[#283876] border-t-transparent rounded-full animate-spin" />
+                      <span>Загрузка данных...</span>
                     </div>
                   </td>
                 </tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-slate-500">
+                  <td colSpan={6} className="px-6 py-16 text-center text-slate-400">
                     Клиенты не найдены
                   </td>
                 </tr>
@@ -157,19 +156,19 @@ export default function CustomersPage() {
                   return (
                     <tr 
                       key={customer.id} 
-                      className="hover:bg-slate-800/40 transition-colors duration-150 group"
+                      className="hover:bg-slate-50/80 transition-colors duration-150"
                     >
                       {/* Name & Avatar */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-cyan-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-xs text-indigo-300">
+                          <div className="w-9 h-9 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-xs text-[#283876] shrink-0">
                             {initials}
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-200 group-hover:text-white transition-colors">
+                            <div className="font-bold text-slate-900">
                               {customer.name}
                             </div>
-                            <div className="text-[11px] text-slate-500 font-mono">
+                            <div className="text-xs text-slate-400 font-mono">
                               ID: #{customer.id}
                             </div>
                           </div>
@@ -179,36 +178,36 @@ export default function CustomersPage() {
                       {/* Username */}
                       <td className="px-6 py-4">
                         {customer.username ? (
-                          <div className="flex items-center gap-1.5 text-indigo-400 font-mono text-xs">
-                            <AtSign className="w-3.5 h-3.5 text-indigo-500" />
+                          <div className="flex items-center gap-1.5 text-[#283876] font-mono font-semibold text-xs">
+                            <AtSign className="w-3.5 h-3.5" />
                             <span>{customer.username}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-600 font-mono text-xs">-</span>
+                          <span className="text-slate-400">-</span>
                         )}
                       </td>
 
                       {/* Phone */}
-                      <td className="px-6 py-4 font-mono text-xs text-slate-300">
+                      <td className="px-6 py-4 font-mono text-xs text-slate-700 font-medium">
                         {customer.phone ? (
-                          <div className="flex items-center gap-1.5 text-emerald-400">
-                            <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                          <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                            <Phone className="w-3.5 h-3.5" />
                             <span>{customer.phone}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-600">-</span>
+                          <span className="text-slate-400">-</span>
                         )}
                       </td>
 
                       {/* Email */}
-                      <td className="px-6 py-4 text-xs text-slate-400">
-                        {customer.email || <span className="text-slate-600">-</span>}
+                      <td className="px-6 py-4 text-xs text-slate-600">
+                        {customer.email || <span className="text-slate-400">-</span>}
                       </td>
 
                       {/* Last contact */}
-                      <td className="px-6 py-4 text-xs text-slate-400">
+                      <td className="px-6 py-4 text-xs text-slate-500">
                         <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-slate-500" />
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
                           <span>
                             {customer.last_contact_at
                               ? formatDistanceToNow(new Date(customer.last_contact_at), { addSuffix: true, locale: ru })
@@ -221,7 +220,7 @@ export default function CustomersPage() {
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleOpenDetails(customer)}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-all duration-150 shadow-sm"
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-[#283876] border border-blue-200 transition-colors cursor-pointer"
                         >
                           Подробнее
                         </button>
@@ -235,23 +234,23 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Slide-over Modal / Drawer for "Подробнее" */}
+      {/* Slide-over Drawer for "Подробнее" */}
       {selectedCustomer && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end transition-opacity">
-          <div className="w-full max-w-lg bg-[#0a0f1d] border-l border-slate-800 h-full overflow-y-auto flex flex-col shadow-2xl p-6 sm:p-8 animate-in slide-in-from-right duration-200">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex justify-end">
+          <div className="w-full max-w-lg bg-white border-l border-slate-200 h-full overflow-y-auto flex flex-col shadow-2xl p-6 sm:p-8 animate-in slide-in-from-right duration-150">
             {/* Header */}
-            <div className="flex items-start justify-between pb-6 border-b border-slate-800/80">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-indigo-600/30 ring-1 ring-white/20">
+            <div className="flex items-start justify-between pb-5 border-b border-slate-100">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center font-bold text-base text-[#283876]">
                   {(selectedCustomer.name || 'К').slice(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white font-mono">{selectedCustomer.name}</h2>
-                  <div className="flex items-center gap-2 mt-1">
+                  <h2 className="text-lg font-bold text-slate-900">{selectedCustomer.name}</h2>
+                  <div className="flex items-center gap-2 mt-0.5">
                     {selectedCustomer.username && (
-                      <span className="text-xs text-indigo-400 font-mono">@{selectedCustomer.username}</span>
+                      <span className="text-xs text-[#283876] font-mono font-semibold">@{selectedCustomer.username}</span>
                     )}
-                    <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">
+                    <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-mono">
                       Клиент #{selectedCustomer.id}
                     </span>
                   </div>
@@ -259,118 +258,118 @@ export default function CustomersPage() {
               </div>
               <button
                 onClick={() => setSelectedCustomer(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Quick Actions */}
-            <div className="py-4 flex gap-3">
+            <div className="py-4 flex gap-2.5">
               <button
                 onClick={() => handleGoToChat(selectedCustomer)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 transition-all"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#283876] hover:bg-[#1E2C60] text-white font-bold text-xs transition-colors cursor-pointer shadow-md shadow-[#283876]/20"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>Открыть переписку</span>
+                <span>Открыть диалог</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </button>
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-colors flex items-center gap-2"
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-semibold text-xs transition-colors flex items-center gap-2 cursor-pointer"
               >
-                <Edit2 className="w-4 h-4 text-slate-400" />
+                <Edit2 className="w-4 h-4 text-slate-500" />
                 <span>{isEditing ? 'Отмена' : 'Редактировать'}</span>
               </button>
             </div>
 
             {saveSuccess && (
-              <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2 font-medium">
                 <Check className="w-4 h-4" />
-                <span>Данные клиента успешно обновлены!</span>
+                <span>Данные клиента успешно сохранены!</span>
               </div>
             )}
 
-            {/* Editable or Readonly Info */}
+            {/* Profile Info */}
             <div className="space-y-4 py-2">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Карточка контакта
               </div>
 
               {isEditing ? (
-                <div className="space-y-3 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">ФИО / Имя</label>
+                    <label className="text-xs text-slate-600 font-semibold block mb-1">ФИО / Имя</label>
                     <input
                       type="text"
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#283876]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Номер телефона</label>
+                    <label className="text-xs text-slate-600 font-semibold block mb-1">Номер телефона</label>
                     <input
                       type="text"
                       placeholder="+996..."
                       value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#283876]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Email</label>
+                    <label className="text-xs text-slate-600 font-semibold block mb-1">Email</label>
                     <input
                       type="email"
                       placeholder="client@mail.com"
                       value={editForm.email}
                       onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#283876]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 block mb-1">Заметки оператора</label>
+                    <label className="text-xs text-slate-600 font-semibold block mb-1">Заметки оператора</label>
                     <textarea
                       rows={3}
                       placeholder="Интересуется услугой, бюджетом и т.д."
                       value={editForm.notes}
                       onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#283876]"
                     />
                   </div>
                   <button
                     onClick={handleSaveCustomer}
                     disabled={saving}
-                    className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   >
                     <Check className="w-4 h-4" />
                     <span>{saving ? 'Сохранение...' : 'Сохранить изменения'}</span>
                   </button>
                 </div>
               ) : (
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400 flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-slate-500" /> Телефон:
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 flex items-center gap-2 font-medium">
+                      <Phone className="w-4 h-4 text-slate-400" /> Телефон:
                     </span>
-                    <span className="font-mono text-emerald-400">{selectedCustomer.phone || 'Не указан'}</span>
+                    <span className="font-mono text-emerald-700 font-semibold">{selectedCustomer.phone || 'Не указан'}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400 flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-slate-500" /> Email:
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 flex items-center gap-2 font-medium">
+                      <Mail className="w-4 h-4 text-slate-400" /> Email:
                     </span>
-                    <span className="text-slate-300">{selectedCustomer.email || 'Не указан'}</span>
+                    <span className="text-slate-900 font-medium">{selectedCustomer.email || 'Не указан'}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400 flex items-center gap-2">
-                      <AtSign className="w-4 h-4 text-slate-500" /> Instagram ID:
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 flex items-center gap-2 font-medium">
+                      <AtSign className="w-4 h-4 text-slate-400" /> Instagram ID:
                     </span>
-                    <span className="font-mono text-xs text-slate-400">{selectedCustomer.instagram_id || '-'}</span>
+                    <span className="font-mono text-slate-600">{selectedCustomer.instagram_id || '-'}</span>
                   </div>
                   {selectedCustomer.notes && (
-                    <div className="pt-2 border-t border-slate-800 text-sm">
-                      <span className="text-slate-400 block text-xs mb-1">Заметки:</span>
-                      <p className="text-slate-300 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 text-xs">
+                    <div className="pt-2 border-t border-slate-200 text-xs">
+                      <span className="text-slate-500 font-medium block mb-1">Заметки:</span>
+                      <p className="text-slate-800 bg-white p-3 rounded-xl border border-slate-200 leading-relaxed">
                         {selectedCustomer.notes}
                       </p>
                     </div>
@@ -378,37 +377,37 @@ export default function CustomersPage() {
                 </div>
               )}
 
-              {/* Bookings Dossier */}
-              <div className="pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-cyan-400" />
+              {/* Bookings */}
+              <div className="pt-3">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#283876]" />
                     Записи клиента ({customerBookings.length})
                   </span>
                 </div>
 
                 {customerBookings.length === 0 ? (
-                  <div className="text-center py-6 bg-slate-900/40 border border-slate-800/60 rounded-xl text-slate-500 text-xs">
+                  <div className="text-center py-6 bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 text-xs">
                     У клиента пока нет оформленных записей
                   </div>
                 ) : (
                   <div className="space-y-2.5">
                     {customerBookings.map((b) => (
-                      <div key={b.id} className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+                      <div key={b.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-mono text-xs font-bold text-indigo-400">{b.booking_number}</span>
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                            b.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' :
-                            b.status === 'awaiting_confirmation' ? 'bg-amber-500/20 text-amber-400' :
-                            'bg-slate-700 text-slate-300'
+                          <span className="font-mono text-xs font-bold text-[#283876]">{b.booking_number}</span>
+                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+                            b.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            b.status === 'awaiting_confirmation' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                            'bg-slate-200 text-slate-700'
                           }`}>
                             {b.status === 'confirmed' ? 'Подтверждена' : 'Ожидает'}
                           </span>
                         </div>
-                        <div className="text-sm font-medium text-slate-200">{b.service_name_snapshot}</div>
-                        <div className="text-xs text-slate-400 mt-1 flex items-center justify-between">
+                        <div className="text-xs font-bold text-slate-900">{b.service_name_snapshot}</div>
+                        <div className="text-xs text-slate-500 mt-1 flex items-center justify-between">
                           <span>{b.scheduled_at ? new Date(b.scheduled_at).toLocaleString('ru-RU') : 'Время согласовывается'}</span>
-                          <span className="font-semibold text-slate-300">{b.price_snapshot} {b.currency}</span>
+                          <span className="font-bold text-[#283876]">{b.price_snapshot} {b.currency}</span>
                         </div>
                       </div>
                     ))}

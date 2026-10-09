@@ -5,8 +5,16 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { DashboardStats } from '@/lib/types';
 import { 
-  MessageSquare, Bot, UserCircle, Clock, Users, Bell, 
-  ArrowUpRight, Sparkles, Activity, ShieldCheck, Compass, Calendar
+  MessageSquare, 
+  Bot, 
+  UserCheck, 
+  Clock, 
+  Users, 
+  Bell, 
+  ArrowUpRight, 
+  Activity, 
+  Calendar,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -31,26 +39,26 @@ export default function DashboardPage() {
       title: 'Активные диалоги',
       value: stats?.open_conversations || 0,
       icon: MessageSquare,
-      color: 'text-cyan-400',
-      bg: 'bg-cyan-500/10 border-cyan-500/20',
+      color: 'text-[#283876]',
+      bg: 'bg-blue-50 border-blue-100',
       href: '/dashboard/conversations',
-      desc: 'Открытые переписки в Direct',
+      desc: 'Открытые переписки в Instagram Direct',
     },
     {
-      title: 'ИИ-сопровождение',
+      title: 'AI-сопровождение',
       value: stats?.ai_conversations || 0,
       icon: Bot,
-      color: 'text-indigo-400',
-      bg: 'bg-indigo-500/10 border-indigo-500/20',
+      color: 'text-[#283876]',
+      bg: 'bg-blue-50 border-blue-100',
       href: '/dashboard/conversations',
-      desc: 'Диалоги под управлением ИИ',
+      desc: 'Диалоги с автоответами ассистента',
     },
     {
-      title: 'На контроле оператора',
+      title: 'Контроль оператора',
       value: stats?.human_conversations || 0,
-      icon: UserCircle,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10 border-emerald-500/20',
+      icon: UserCheck,
+      color: 'text-emerald-700',
+      bg: 'bg-emerald-50 border-emerald-100',
       href: '/dashboard/conversations',
       desc: 'Ручные ответы сотрудников',
     },
@@ -58,66 +66,66 @@ export default function DashboardPage() {
       title: 'Ожидают подтверждения',
       value: stats?.pending_bookings || 0,
       icon: Clock,
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10 border-amber-500/20',
+      color: 'text-amber-700',
+      bg: 'bg-amber-50 border-amber-100',
       href: '/dashboard/bookings',
-      desc: 'Требуют внимания оператора',
+      desc: 'Требуют решения по слотам',
     },
     {
-      title: 'Клиентская база',
+      title: 'База клиентов',
       value: stats?.total_customers || 0,
       icon: Users,
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10 border-purple-500/20',
+      color: 'text-indigo-700',
+      bg: 'bg-indigo-50 border-indigo-100',
       href: '/dashboard/customers',
-      desc: 'Уникальные клиенты',
+      desc: 'Всего зарегистрированных клиентов',
     },
     {
-      title: 'Непрочитанные',
+      title: 'Непрочитанные сообщения',
       value: stats?.unread_messages || 0,
       icon: Bell,
-      color: 'text-rose-400',
-      bg: 'bg-rose-500/10 border-rose-500/20',
+      color: 'text-rose-700',
+      bg: 'bg-rose-50 border-rose-100',
       href: '/dashboard/conversations',
-      desc: 'Новые сообщения клиентов',
+      desc: 'Новые входящие сообщения',
     },
   ];
 
   return (
-    <div className="p-8 overflow-y-auto h-full bg-[#070b14] text-slate-100">
-      {/* Page Title */}
+    <div className="p-8 overflow-y-auto h-full bg-[#F8FAFC] text-slate-900">
+      {/* Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase tracking-widest font-semibold">
-              Главный терминал
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-blue-50 text-[#283876] border border-blue-100">
+              Панель управления
             </span>
-            <span className="text-xs text-slate-500">•</span>
-            <span className="text-xs text-emerald-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Все узлы в норме
+            <span className="text-slate-300">•</span>
+            <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Сервисы работают в штатном режиме
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white font-mono">
-            Обзор показателей CRM
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Сводка и показатели TC CRM
           </h1>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Navigation */}
         <div className="flex gap-2.5">
           <button
             onClick={() => router.push('/dashboard/bookings')}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 text-xs font-semibold flex items-center gap-2 transition-colors shadow-sm"
+            className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
           >
-            <Calendar className="w-4 h-4 text-indigo-400" />
+            <Calendar className="w-4 h-4 text-[#283876]" />
             <span>График записей</span>
           </button>
           <button
             onClick={() => router.push('/dashboard/conversations')}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all"
+            className="px-4 py-2.5 rounded-xl bg-[#283876] hover:bg-[#1E2C60] text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-md shadow-[#283876]/20"
           >
             <MessageSquare className="w-4 h-4" />
-            <span>В диалоги</span>
+            <span>Перейти в диалоги</span>
           </button>
         </div>
       </div>
@@ -130,65 +138,65 @@ export default function DashboardPage() {
             <div
               key={i}
               onClick={() => router.push(card.href)}
-              className="bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-6 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-xl group backdrop-blur-md relative overflow-hidden"
+              className="bg-white hover:bg-slate-50/80 border border-slate-200/90 hover:border-blue-200 rounded-2xl p-6 transition-all duration-150 cursor-pointer group shadow-sm hover:shadow"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className={`p-3 rounded-xl border ${card.bg}`}>
                   <Icon className={`w-6 h-6 ${card.color}`} />
                 </div>
-                <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-[#283876] transition-colors" />
               </div>
 
               <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1 font-mono">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                   {card.title}
                 </p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-white font-mono tracking-tight">
+                  <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
                     {loading ? '—' : card.value}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-2">{card.desc}</p>
+                <p className="text-xs text-slate-500 mt-1.5">{card.desc}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Infrastructure Telemetry Card */}
-      <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 backdrop-blur-md">
-        <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-800/80">
-          <div className="flex items-center gap-2.5">
-            <Activity className="w-4 h-4 text-cyan-400" />
-            <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
-              Телеметрия сервисов платформы
+      {/* Infrastructure Telemetry */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#283876]" />
+            <h3 className="text-sm font-bold text-slate-900">
+              Статус подключений платформы
             </h3>
           </div>
-          <span className="text-xs text-slate-500 font-mono">Германия 🇩🇪 (2.26.50.235)</span>
+          <span className="text-xs text-slate-400 font-mono">Сервер: 2.26.50.235 (Германия)</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
-          <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between">
-            <span className="text-slate-400">Meta Instagram Graph:</span>
-            <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Live Connected
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+            <span className="text-slate-600 font-medium">Meta Instagram Graph:</span>
+            <span className="text-emerald-600 font-bold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Подключен
             </span>
           </div>
 
-          <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between">
-            <span className="text-slate-400">Mistral AI Copilot:</span>
-            <span className="text-indigo-400 font-semibold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              open-mistral-7b
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+            <span className="text-slate-600 font-medium">AI-модель:</span>
+            <span className="text-[#283876] font-bold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#283876]" />
+              Mistral AI (Активна)
             </span>
           </div>
 
-          <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between">
-            <span className="text-slate-400">PostgreSQL Cloud DB:</span>
-            <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Operational 24/7
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+            <span className="text-slate-600 font-medium">База данных PostgreSQL:</span>
+            <span className="text-emerald-600 font-bold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Онлайн 24/7
             </span>
           </div>
         </div>

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { InboxFoldersPane, InboxViewType } from '@/components/InboxFoldersPane';
 import { ConversationList } from '@/components/ConversationList';
 import { ChatPanel } from '@/components/ChatPanel';
-import { CustomerPanel } from '@/components/CustomerPanel';
+import { CustomerInspector } from '@/components/CustomerInspector';
 import { api } from '@/lib/api';
 import { Conversation, Message, Booking } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +19,8 @@ function ConversationsContent() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeView, setActiveView] = useState<InboxViewType>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>('all');
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -63,7 +66,6 @@ function ConversationsContent() {
   const loadConversationDetails = async (id: string) => {
     try {
       const msgs = await api.getMessages(id, 0, 100);
-      // Backend already returns messages ordered by created_at.asc()
       setMessages(msgs);
 
       const conv = conversations.find((c) => String(c.id) === String(id));
@@ -124,18 +126,43 @@ function ConversationsContent() {
     }
   };
 
+  // Filter conversations by active view
+  const viewFilteredConversations = conversations.filter((c) => {
+    if (activeView === 'inbox') return c.status === 'open';
+    if (activeView === 'unassigned') return !c.assigned_user_id;
+    return true;
+  });
+
   const selectedConversation = conversations.find((c) => String(c.id) === String(selectedId));
 
+  const totalCount = conversations.length;
+  const openCount = conversations.filter((c) => c.status === 'open').length;
+  const aiCount = conversations.filter((c) => c.mode === 'ai' && c.status === 'open').length;
+
   return (
-    <div className="flex h-full w-full overflow-hidden bg-[#070b14]">
+    <div className="flex h-full w-full overflow-hidden p-2.5 gap-2.5 bg-[#F8FAFC]">
+      {/* Pane 1: Inbox Views & Navigation */}
+      <InboxFoldersPane
+        totalCount={totalCount}
+        openCount={openCount}
+        aiCount={aiCount}
+        activeView={activeView}
+        onViewChange={setActiveView}
+        onSearchClick={() => {}}
+      />
+
+      {/* Pane 2: Conversation List Column */}
       <ConversationList
-        conversations={conversations}
+        conversations={viewFilteredConversations}
         selectedId={selectedId}
         onSelect={setSelectedId}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
       />
       
+      {/* Pane 3: Center Messenger Stream */}
       {selectedConversation ? (
         <>
           <ChatPanel
@@ -144,8 +171,10 @@ function ConversationsContent() {
             onModeChange={handleModeChange}
             onMessageSent={() => selectedId && loadConversationDetails(selectedId)}
           />
+
+          {/* Pane 4: Right Inspector Panel (Details & Copilot) */}
           {selectedConversation.customer && (
-            <CustomerPanel
+            <CustomerInspector
               customer={selectedConversation.customer}
               bookings={bookings}
               onConfirmBooking={handleConfirmBooking}
@@ -154,9 +183,10 @@ function ConversationsContent() {
           )}
         </>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 bg-[#070b14] font-mono text-sm">
-          <MessageSquare className="w-12 h-12 text-slate-700 mb-3" />
-          <p>Выберите диалог из списка слева для просмотра</p>
+        <div className="flex-1 bg-white border border-slate-200/90 rounded-2xl flex flex-col items-center justify-center text-slate-500 font-sans text-xs shadow-sm">
+          <MessageSquare className="w-10 h-10 text-slate-300 mb-2" />
+          <p className="font-bold text-slate-800 text-sm">Выберите диалог из списка</p>
+          <p className="text-slate-500 mt-1">Сообщения Instagram Direct отобразятся здесь</p>
         </div>
       )}
     </div>
@@ -165,7 +195,7 @@ function ConversationsContent() {
 
 export default function ConversationsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Загрузка диалогов...</div>}>
+    <Suspense fallback={<div className="p-8 text-slate-500 font-mono text-xs">Загрузка Intercom Desk...</div>}>
       <ConversationsContent />
     </Suspense>
   );

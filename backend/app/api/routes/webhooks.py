@@ -99,6 +99,10 @@ async def receive_instagram_event(
                     )
                 )
 
+            # Skip empty events (e.g. reaction / read receipt without text or attachments)
+            if not event.text and not event.attachments:
+                continue
+
             # 2. Handle Echo messages (messages sent by the business page itself)
             if event.is_echo:
                 # Recipient is the customer
@@ -108,6 +112,26 @@ async def receive_instagram_event(
                 conv, _ = await ConversationService.get_or_create_conversation(
                     db=db, customer_id=customer.id
                 )
+                # Check if this echo matches an outbound message already recorded by AI or Dashboard
+                from app.models.message import Message
+                recent_out_q = (
+                    select(Message)
+                    .where(
+                        Message.conversation_id == conv.id,
+                        Message.direction == "outbound",
+                        Message.text == event.text,
+                    )
+                    .order_by(Message.id.desc())
+                    .limit(1)
+                )
+                recent_out = (await db.execute(recent_out_q)).scalar_one_or_none()
+                if recent_out:
+                    if not recent_out.external_message_id and event.message_id:
+                        recent_out.external_message_id = event.message_id
+                    logger.info("Matched echo to existing outbound message #%d (conv #%d)", recent_out.id, conv.id)
+                    processed_count += 1
+                    continue
+
                 await ConversationService.record_message(
                     db=db,
                     conversation_id=conv.id,

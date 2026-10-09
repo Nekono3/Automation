@@ -62,7 +62,7 @@ app = FastAPI(
 # CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,8 +71,20 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth_router)
 app.include_router(webhook_router)
+
 from app.api.routes.conversations import router as conversations_router
+from app.api.routes.customers import router as customers_router
+from app.api.routes.bookings import router as bookings_router
+from app.api.routes.services import router as services_router
+from app.api.routes.dashboard import router as dashboard_router
+
+
 app.include_router(conversations_router)
+app.include_router(customers_router)
+app.include_router(bookings_router)
+app.include_router(services_router)
+app.include_router(dashboard_router)
+
 
 
 @app.get("/api/health", status_code=status.HTTP_200_OK, tags=["Health"])

@@ -125,27 +125,74 @@ class MistralConsultingAgent:
             )
             reply_text = response.choices[0].message.content.strip()
 
-            # 5. Booking detection: check if customer provided phone number or confirms booking
+            # 5. Booking & Customer info detection
             phone_match = re.search(r"(\+?\d[\d\s\-\(\)]{8,}\d)", incoming_message)
-            if phone_match and not customer.phone:
+            if phone_match:
                 extracted_phone = phone_match.group(1).replace(" ", "").replace("-", "")
                 customer.phone = extracted_phone
                 await db.commit()
                 logger.info("Captured customer phone number: %s", extracted_phone)
 
-            # Check if any service was selected
-            for service in services:
-                if service["name"].lower() in incoming_message.lower():
-                    # Create draft booking if not already exists
-                    await execute_create_booking(
-                        db=db,
-                        customer_id=customer.id,
-                        service_id=service["id"],
-                        customer_phone=customer.phone,
-                        customer_name=customer.name,
-                        notes=f"Запрос из Instagram: {incoming_message}",
+            name_match = re.search(r"(?:меня зовут|имя)\s+([А-Яа-яЁёA-Za-z\-]+(?:\s+[А-Яа-яЁёA-Za-z\-]+)?)", incoming_message, re.IGNORECASE)
+            if name_match:
+                extracted_name = name_match.group(1).strip()
+                customer.name = extracted_name
+                await db.commit()
+                logger.info("Captured customer name: %s", extracted_name)
+
+            combined_text = f"{incoming_message} {reply_text}".lower()
+            booking_Directives = ["записываю вас", "подтверждаю запись", "запись успешно оформлена", "запись подтверждена"]
+            is_booking_flow = any(d in reply_text.lower() for d in booking_Directives) or bool(phone_match)
+
+            if is_booking_flow:
+                matched_service = None
+                for service in services:
+                    s_name = service["name"].lower()
+                    # Match full name or first word stem (e.g. "первичн", "стратегическ", "аудит")
+                    first_stem = s_name.split()[0][:6]
+                    if s_name in combined_text or first_stem in combined_text:
+                        matched_service = service
+                        break
+                if not matched_service and services:
+                    matched_service = services[0]
+
+                if matched_service:
+                    from app.models.booking import Booking
+                    existing_q = (
+                        select(Booking)
+                        .where(
+                            Booking.customer_id == customer.id,
+                            Booking.service_id == matched_service["id"],
+                            Booking.status.in_(["draft", "awaiting_confirmation", "confirmed"]),
+                        )
+                        .order_by(Booking.id.desc())
+                        .limit(1)
                     )
-                    break
+                    existing_res = await db.execute(existing_q)
+                    existing_booking = existing_res.scalar_one_or_none()
+
+                    is_confirmed_reply = any(k in reply_text.lower() for k in ["запись успешно оформлена", "запись подтверждена", "подтверждаю запись"])
+
+                    if not existing_booking:
+                        created = await execute_create_booking(
+                            db=db,
+                            customer_id=customer.id,
+                            service_id=matched_service["id"],
+                            customer_phone=customer.phone,
+                            customer_name=customer.name,
+                            notes=f"Instagram DM: {incoming_message}",
+                        )
+                        if is_confirmed_reply and created.get("booking_id"):
+                            await execute_confirm_booking(db=db, booking_id=created["booking_id"])
+                    else:
+                        if customer.phone and not existing_booking.customer_phone:
+                            existing_booking.customer_phone = customer.phone
+                        if customer.name and not existing_booking.customer_name:
+                            existing_booking.customer_name = customer.name
+                        if is_confirmed_reply and existing_booking.status != "confirmed":
+                            await execute_confirm_booking(db=db, booking_id=existing_booking.id)
+                        else:
+                            await db.commit()
 
             return reply_text
 

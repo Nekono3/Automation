@@ -83,7 +83,19 @@ async function initWhatsApp() {
       if (remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) continue;
 
       const isFromMe = msg.key?.fromMe;
-      const senderPhone = remoteJid.replace('@s.whatsapp.net', '');
+      const remoteJid = msg.key?.remoteJid || '';
+      // Ignore status broadcasts and groups
+      if (remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) continue;
+
+      const participant = msg.key?.participant || '';
+      let displayPhone = '';
+      if (participant.endsWith('@s.whatsapp.net')) {
+        displayPhone = participant.replace('@s.whatsapp.net', '');
+      } else if (remoteJid.endsWith('@s.whatsapp.net')) {
+        displayPhone = remoteJid.replace('@s.whatsapp.net', '');
+      } else {
+        displayPhone = remoteJid;
+      }
       const senderName = msg.pushName || '';
 
       const text =
@@ -94,14 +106,15 @@ async function initWhatsApp() {
 
       if (!text.trim()) continue;
 
-      console.log(`[WhatsApp Bridge] Message ${isFromMe ? 'OUT' : 'IN'} [${senderPhone}]: ${text.slice(0, 50)}`);
+      console.log(`[WhatsApp Bridge] Message ${isFromMe ? 'OUT' : 'IN'} [${remoteJid}]: ${text.slice(0, 50)}`);
 
       // Forward inbound customer messages to CRM FastAPI Webhook
       if (!isFromMe) {
         try {
           const payload = JSON.stringify({
-            sender_phone: senderPhone,
+            sender_phone: displayPhone,
             sender_name: senderName,
+            sender_jid: remoteJid,
             text: text.trim(),
             message_id: msg.key?.id || '',
           });
@@ -262,16 +275,21 @@ app.post('/send', async (req, res) => {
   }
 
   try {
-    const cleanPhone = to.replace(/\D/g, '');
-    const jid = `${cleanPhone}@s.whatsapp.net`;
+    let jid;
+    if (to.includes('@')) {
+      jid = to;
+    } else {
+      const cleanPhone = to.replace(/\D/g, '');
+      jid = `${cleanPhone}@s.whatsapp.net`;
+    }
 
     const sent = await sock.sendMessage(jid, { text });
-    console.log(`[WhatsApp Bridge] Sent message to ${cleanPhone}: ${text.slice(0, 40)}`);
+    console.log(`[WhatsApp Bridge] Sent message to ${jid}: ${text.slice(0, 40)}`);
 
     res.json({
       success: true,
-      message_id: sent.key.id,
-      to: cleanPhone,
+      message_id: sent?.key?.id,
+      to: jid,
     });
   } catch (err) {
     console.error(`[WhatsApp Bridge] Error sending to ${to}:`, err);

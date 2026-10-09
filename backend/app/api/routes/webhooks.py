@@ -343,6 +343,7 @@ async def receive_whatsapp_event(
 class WhatsAppBridgePayload(BaseModel):
     sender_phone: str
     sender_name: Optional[str] = None
+    sender_jid: Optional[str] = None
     text: str
     message_id: Optional[str] = None
 
@@ -357,7 +358,12 @@ async def receive_whatsapp_bridge_event(
     Receives incoming WhatsApp message from the local Baileys bridge microservice.
     """
     clean_phone = payload.sender_phone.replace("+", "").strip()
-    logger.info("Received WhatsApp bridge message from %s: %s", clean_phone, payload.text[:40])
+    reply_target = payload.sender_jid or clean_phone
+    display_phone = clean_phone.replace("@lid", "")
+    if not display_phone.startswith("+") and display_phone.isdigit():
+        display_phone = f"+{display_phone}"
+
+    logger.info("Received WhatsApp bridge message from %s (jid: %s): %s", display_phone, reply_target, payload.text[:40])
 
     # 1. Deduplication via message_id check
     if payload.message_id:
@@ -372,7 +378,7 @@ async def receive_whatsapp_bridge_event(
             WebhookEvent(
                 event_id=payload.message_id,
                 source="whatsapp_bridge",
-                payload={"phone": clean_phone, "text": payload.text},
+                payload={"phone": display_phone, "jid": reply_target, "text": payload.text},
                 status="processed",
             )
         )
@@ -380,9 +386,9 @@ async def receive_whatsapp_bridge_event(
     # 2. Get or create customer by phone number
     customer, _ = await CustomerService.get_or_create_by_whatsapp_id(
         db=db,
-        whatsapp_id=clean_phone,
-        phone=clean_phone,
-        name=payload.sender_name or f"WhatsApp {clean_phone[-4:]}",
+        whatsapp_id=reply_target,
+        phone=display_phone,
+        name=payload.sender_name or f"WhatsApp {display_phone[-4:]}",
     )
 
     # 3. Get or create conversation with channel='whatsapp'

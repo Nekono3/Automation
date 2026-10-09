@@ -108,10 +108,10 @@ async def send_operator_message(
     await db.commit()
     await db.refresh(msg)
     
-    if channel == "whatsapp" and (conversation.customer.phone or conversation.customer.whatsapp_id):
+    if channel == "whatsapp" and (conversation.customer.whatsapp_id or conversation.customer.phone):
         from app.integrations.whatsapp.client import WhatsAppClient
         wa_client = WhatsAppClient()
-        target_phone = conversation.customer.phone or conversation.customer.whatsapp_id
+        target_phone = conversation.customer.whatsapp_id or conversation.customer.phone
         await wa_client.send_text_message(target_phone, payload.text)
     elif conversation.customer.instagram_id:
         client = InstagramClient()

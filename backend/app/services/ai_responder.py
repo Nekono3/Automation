@@ -57,15 +57,15 @@ async def process_and_reply_background(
         logger.info("Saved AI reply #%d in database for conv #%d (%s)", ai_msg.id, conversation.id, channel)
 
         # 2. Deliver message to customer via appropriate channel API
-        if channel == "whatsapp" and (customer.phone or customer.whatsapp_id):
+        if channel == "whatsapp" and (customer.whatsapp_id or customer.phone):
             from app.integrations.whatsapp.client import WhatsAppClient
             wa_client = WhatsAppClient()
-            target_phone = customer.phone or customer.whatsapp_id
+            target_phone = customer.whatsapp_id or customer.phone
             send_result = await wa_client.send_text_message(
                 to_phone=target_phone,
                 text=reply_text,
             )
-            logger.info("WhatsApp Cloud API delivery result for customer %s: %s", target_phone, send_result)
+            logger.info("WhatsApp delivery result for customer %s: %s", target_phone, send_result)
         elif customer.instagram_id:
             client = InstagramClient()
             send_result = await client.send_text_message(

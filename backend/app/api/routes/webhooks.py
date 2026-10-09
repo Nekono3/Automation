@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, Request, Query, Header, HTTPException, status, Depends, BackgroundTasks
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import select

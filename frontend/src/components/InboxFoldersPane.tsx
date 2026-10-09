@@ -43,11 +43,11 @@ export function InboxFoldersPane({
   const [setupCardExpanded, setSetupCardExpanded] = useState(true);
 
   const views = [
-    { id: 'inbox' as InboxViewType, label: 'Ваши диалоги', count: openCount, icon: Inbox },
-    { id: 'mentions' as InboxViewType, label: 'Упоминания', count: 0, icon: AtSign },
-    { id: 'created_by_you' as InboxViewType, label: 'Созданные вами', count: 0, icon: PenTool },
+    { id: 'inbox' as InboxViewType, label: 'Входящие (Inbox)', count: openCount, icon: Inbox },
     { id: 'all' as InboxViewType, label: 'Все диалоги', count: totalCount, icon: Users },
     { id: 'unassigned' as InboxViewType, label: 'Неназначенные', count: 0, icon: UserX },
+    { id: 'mentions' as InboxViewType, label: 'Упоминания', count: 0, icon: AtSign },
+    { id: 'created_by_you' as InboxViewType, label: 'Созданные вами', count: 0, icon: PenTool },
   ];
 
   return (
@@ -56,7 +56,14 @@ export function InboxFoldersPane({
       <div className="flex flex-col">
         {/* Header: Title + Create New + Search */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-slate-100">
-          <h1 className="font-bold text-sm text-slate-900 tracking-tight">Inbox</h1>
+          <button
+            onClick={() => onViewChange('inbox')}
+            className="font-bold text-sm text-slate-900 tracking-tight hover:text-[#283876] transition-colors flex items-center gap-1.5 cursor-pointer text-left group"
+            title="Перейти во входящие диалоги"
+          >
+            <span>Inbox</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#283876] transition-transform group-hover:scale-125" />
+          </button>
           <div className="flex items-center gap-1.5">
             <button
               onClick={onNewConversation}

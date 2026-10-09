@@ -56,6 +56,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Official TC Monogram Logo */}
           <Link 
             href="/dashboard/conversations"
+            onClick={(e) => {
+              e.preventDefault();
+              router.push('/dashboard/conversations');
+            }}
             className="w-11 h-11 rounded-xl bg-white border border-slate-200 hover:border-[#283876]/40 flex items-center justify-center p-1 hover:shadow-md transition-all duration-150 cursor-pointer group"
             title="TC Consulting CRM"
           >
@@ -78,6 +82,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    router.push(item.href);
+                  }}
                   className={`w-11 h-11 rounded-xl flex items-center justify-center relative transition-all duration-150 group cursor-pointer ${
                     isActive
                       ? 'bg-[#283876] text-white shadow-sm shadow-[#283876]/20'

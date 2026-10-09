@@ -19,7 +19,7 @@ function ConversationsContent() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState<InboxViewType>('all');
+  const [activeView, setActiveView] = useState<InboxViewType>('inbox');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>('all');
   
   const [messages, setMessages] = useState<Message[]>([]);
@@ -130,6 +130,7 @@ function ConversationsContent() {
   const viewFilteredConversations = conversations.filter((c) => {
     if (activeView === 'inbox') return c.status === 'open';
     if (activeView === 'unassigned') return !c.assigned_user_id;
+    if (activeView === 'mentions' || activeView === 'created_by_you') return false;
     return true;
   });
 

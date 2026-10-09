@@ -101,8 +101,8 @@ export default function DashboardPage() {
               Панель управления
             </span>
             <span className="text-slate-300">•</span>
-            <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-xs text-[#283876] font-semibold flex items-center gap-1.5 bg-[#EEF2FF] px-2.5 py-1 rounded-md border border-[#283876]/15">
+              <span className="w-2 h-2 rounded-full bg-[#283876]" />
               Сервисы работают в штатном режиме
             </span>
           </div>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
             className="px-4 py-2.5 rounded-xl bg-[#283876] hover:bg-[#1E2C60] text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-md shadow-[#283876]/20"
           >
             <MessageSquare className="w-4 h-4" />
-            <span>Перейти в диалоги</span>
+            <span>Входящие (Inbox)</span>
           </button>
         </div>
       </div>
@@ -164,40 +164,24 @@ export default function DashboardPage() {
       </div>
 
       {/* Infrastructure Telemetry */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-[#283876]" />
             <h3 className="text-sm font-bold text-slate-900">
               Статус подключений платформы
             </h3>
           </div>
-          <span className="text-xs text-slate-400 font-mono">Сервер: 2.26.50.235 (Германия)</span>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
-            <span className="text-slate-600 font-medium">Meta Instagram Graph:</span>
-            <span className="text-emerald-600 font-bold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Подключен
-            </span>
-          </div>
-
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
-            <span className="text-slate-600 font-medium">AI-модель:</span>
-            <span className="text-[#283876] font-bold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#283876]" />
-              Mistral AI (Активна)
-            </span>
-          </div>
-
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
-            <span className="text-slate-600 font-medium">База данных PostgreSQL:</span>
-            <span className="text-emerald-600 font-bold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Онлайн 24/7
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="px-3.5 py-1.5 bg-blue-50/80 rounded-xl border border-blue-100 flex items-center gap-2 text-xs">
+              <span className="text-slate-600 font-medium">Meta Instagram Graph:</span>
+              <span className="text-[#283876] font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#283876]" />
+                Direct API • Подключен
+              </span>
+            </div>
+            <span className="text-xs text-slate-400 font-mono hidden md:inline">Сервер: 2.26.50.235</span>
           </div>
         </div>
       </div>

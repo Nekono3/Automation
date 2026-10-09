@@ -14,7 +14,8 @@ import {
   ArrowUpRight, 
   Activity, 
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  QrCode
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -182,12 +183,21 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="px-3.5 py-1.5 bg-emerald-50/80 rounded-xl border border-emerald-100 flex items-center gap-2 text-xs">
-              <span className="text-slate-600 font-medium">WhatsApp Business:</span>
+              <span className="text-slate-600 font-medium">WhatsApp:</span>
               <span className="text-emerald-700 font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#25D366]" />
-                Cloud API • Подключен
+                Multi-Device Bridge • Готов
               </span>
             </div>
+            <a
+              href="/whatsapp-qr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Привязать номер (QR)</span>
+            </a>
             <span className="text-xs text-slate-400 font-mono hidden lg:inline">Сервер: 2.26.50.235</span>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InboxFoldersPane, InboxViewType } from '@/components/InboxFoldersPane';
 import { ConversationList } from '@/components/ConversationList';
@@ -25,68 +25,103 @@ function ConversationsContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
 
-  const fetchConversations = useCallback(async () => {
-    try {
-      const data = await api.getConversations();
-      if (searchQuery) {
-        const lower = searchQuery.toLowerCase();
-        setConversations(
-          data.filter(
-            (c) =>
-              c.customer?.name?.toLowerCase().includes(lower) ||
-              c.customer?.username?.toLowerCase().includes(lower) ||
-              String(c.customer_id).includes(lower)
-          )
-        );
-      } else {
-        setConversations(data);
-      }
-
-      // If a target customer was requested via URL, auto-select their conversation
-      if (targetCustomerId) {
-        const matched = data.find((c) => String(c.customer_id) === String(targetCustomerId));
-        if (matched) {
-          setSelectedId(matched.id);
-        }
-      } else if (!selectedId && data.length > 0) {
-        setSelectedId(data[0].id);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }, [searchQuery, targetCustomerId, selectedId]);
-
+  // Ref to track current selectedId in background polling without triggering interval restarts
+  const selectedIdRef = useRef<string | null>(selectedId);
   useEffect(() => {
-    if (!isAuthenticated) return;
-    fetchConversations();
-    const interval = setInterval(fetchConversations, 4000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated, fetchConversations]);
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
 
-  const loadConversationDetails = async (id: string) => {
+  // Load details (messages & bookings) for a specific conversation
+  const loadConversationDetails = useCallback(async (id: string, silent = false) => {
     try {
       const msgs = await api.getMessages(id, 0, 100);
-      setMessages(msgs);
+      setMessages((prev) => {
+        // Avoid state updates if messages haven't changed (prevents flicker)
+        if (
+          prev.length === msgs.length &&
+          prev[prev.length - 1]?.id === msgs[msgs.length - 1]?.id &&
+          prev[prev.length - 1]?.text === msgs[msgs.length - 1]?.text
+        ) {
+          return prev;
+        }
+        return msgs;
+      });
 
-      const conv = conversations.find((c) => String(c.id) === String(id));
-      if (!conv) {
-        const c = await api.getConversation(id);
-        if (c.customer_id) {
-          const b = await api.getBookings({ customer_id: c.customer_id });
+      if (!silent) {
+        const conv = conversations.find((c) => String(c.id) === String(id));
+        const customerId = conv?.customer_id;
+        if (customerId) {
+          const b = await api.getBookings({ customer_id: customerId });
           setBookings(b);
         }
-      } else if (conv.customer_id) {
-        const b = await api.getBookings({ customer_id: conv.customer_id });
-        setBookings(b);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error loading conversation details:', err);
     }
-  };
+  }, [conversations]);
 
+  // Unified background polling: syncs conversation list AND active conversation messages
+  const syncData = useCallback(async () => {
+    try {
+      const data = await api.getConversations();
+      
+      setConversations((prev) => {
+        const lower = searchQuery.toLowerCase();
+        const filtered = searchQuery
+          ? data.filter(
+              (c) =>
+                c.customer?.name?.toLowerCase().includes(lower) ||
+                c.customer?.username?.toLowerCase().includes(lower) ||
+                String(c.customer_id).includes(lower)
+            )
+          : data;
+
+        // Check if anything actually changed in conversations
+        const isSame =
+          prev.length === filtered.length &&
+          prev.every(
+            (p, idx) =>
+              p.id === filtered[idx]?.id &&
+              p.last_message_at === filtered[idx]?.last_message_at &&
+              p.unread_count === filtered[idx]?.unread_count &&
+              p.mode === filtered[idx]?.mode
+          );
+
+        return isSame ? prev : filtered;
+      });
+
+      // Handle initial auto-selection
+      const currentSelected = selectedIdRef.current;
+      if (targetCustomerId) {
+        const matched = data.find((c) => String(c.customer_id) === String(targetCustomerId));
+        if (matched && matched.id !== currentSelected) {
+          setSelectedId(matched.id);
+        }
+      } else if (!currentSelected && data.length > 0) {
+        setSelectedId(data[0].id);
+      }
+
+      // Live-poll messages for the currently open conversation
+      if (currentSelected) {
+        loadConversationDetails(currentSelected, true);
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+    }
+  }, [searchQuery, targetCustomerId, loadConversationDetails]);
+
+  // Initial load and periodic background sync every 2.5 seconds
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    syncData();
+    const interval = setInterval(syncData, 2500);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, syncData]);
+
+  // When user actively clicks / changes conversation
   useEffect(() => {
     if (selectedId) {
-      loadConversationDetails(selectedId);
+      loadConversationDetails(selectedId, false);
       setConversations((prev) =>
         prev.map((c) => (String(c.id) === String(selectedId) ? { ...c, unread_count: 0 } : c))
       );

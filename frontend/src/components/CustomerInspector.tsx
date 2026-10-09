@@ -247,7 +247,7 @@ export function CustomerInspector({
                     <div className="flex justify-between items-center py-0.5">
                       <span className="text-slate-500">WhatsApp ID</span>
                       <span className="text-emerald-700 font-mono font-semibold truncate max-w-[150px]">
-                        {customer.whatsapp_id}
+                        {customer.whatsapp_id.includes('@lid') ? 'WhatsApp Client' : customer.whatsapp_id}
                       </span>
                     </div>
                   )}
@@ -264,7 +264,7 @@ export function CustomerInspector({
                   <div className="flex justify-between items-center py-0.5">
                     <span className="text-slate-500">Телефон</span>
                     <span className="text-slate-900 font-mono font-medium">
-                      {customer.phone || '+996...'}
+                      {customer.phone && !customer.phone.includes('@lid') ? customer.phone : 'Прямой контакт WhatsApp'}
                     </span>
                   </div>
 

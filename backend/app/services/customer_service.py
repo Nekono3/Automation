@@ -55,12 +55,18 @@ class CustomerService:
 
     @staticmethod
     async def get_by_whatsapp_id(db: AsyncSession, whatsapp_id: str) -> Optional[Customer]:
+        clean_raw = whatsapp_id.replace("+", "").replace(" ", "").replace("-", "")
+        clean_no_lid = clean_raw.replace("@lid", "")
+        candidates = [whatsapp_id, clean_raw, clean_no_lid]
         result = await db.execute(
             select(Customer).where(
-                or_(Customer.whatsapp_id == whatsapp_id, Customer.phone == whatsapp_id)
+                or_(
+                    Customer.whatsapp_id.in_(candidates),
+                    Customer.phone.in_([c for c in candidates] + [f"+{c}" for c in candidates])
+                )
             )
         )
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     @staticmethod
     async def get_or_create_by_whatsapp_id(
@@ -70,26 +76,32 @@ class CustomerService:
         name: Optional[str] = None,
     ) -> tuple[Customer, bool]:
         """Returns (customer, created). Updates last_contact_at."""
-        clean_phone = (phone or whatsapp_id).replace("+", "").replace(" ", "").replace("-", "")
-        customer = await CustomerService.get_by_whatsapp_id(db, clean_phone)
+        customer = await CustomerService.get_by_whatsapp_id(db, whatsapp_id)
+        if not customer and phone:
+            customer = await CustomerService.get_by_whatsapp_id(db, phone)
+
         created = False
         now = datetime.now(timezone.utc)
 
+        target_wa_id = whatsapp_id.replace("+", "").strip()
+        display_phone = (phone or whatsapp_id).replace("@lid", "").replace("+", "").strip()
+        formatted_phone = f"+{display_phone}" if display_phone else None
+
         if customer:
-            if name and not customer.name:
+            if name and (not customer.name or customer.name.startswith("WA-") or customer.name.startswith("WhatsApp ")):
                 customer.name = name
-            if not customer.whatsapp_id:
-                customer.whatsapp_id = clean_phone
-            if not customer.phone:
-                customer.phone = f"+{clean_phone}"
+            if not customer.whatsapp_id or "@lid" in target_wa_id:
+                customer.whatsapp_id = target_wa_id
+            if not customer.phone and formatted_phone:
+                customer.phone = formatted_phone
             customer.last_contact_at = now
             await db.commit()
             await db.refresh(customer)
         else:
             customer = Customer(
-                whatsapp_id=clean_phone,
-                phone=f"+{clean_phone}",
-                name=name or f"WA-{clean_phone[-6:]}",
+                whatsapp_id=target_wa_id,
+                phone=formatted_phone,
+                name=name or f"WhatsApp {display_phone[-4:] if display_phone else 'User'}",
                 last_contact_at=now,
             )
             db.add(customer)

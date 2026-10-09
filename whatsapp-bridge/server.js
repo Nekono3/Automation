@@ -20,6 +20,28 @@ let connectedPhone = null;
 
 const logger = pino({ level: 'silent' });
 
+// Persistent known JIDs / LIDs mapping
+const fs = require('fs');
+const JID_CACHE_FILE = path.join(AUTH_DIR, 'jid_cache.json');
+let knownJids = {
+  '222032864239622': '222032864239622@lid',
+  '222032864239622@lid': '222032864239622@lid',
+};
+try {
+  if (fs.existsSync(JID_CACHE_FILE)) {
+    const loaded = JSON.parse(fs.readFileSync(JID_CACHE_FILE, 'utf8'));
+    knownJids = { ...knownJids, ...loaded };
+  }
+} catch (e) {}
+
+function rememberJid(clean, fullJid) {
+  if (!clean || !fullJid) return;
+  knownJids[clean] = fullJid;
+  try {
+    fs.writeFileSync(JID_CACHE_FILE, JSON.stringify(knownJids, null, 2), 'utf8');
+  } catch (e) {}
+}
+
 async function initWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
 
@@ -83,6 +105,11 @@ async function initWhatsApp() {
       if (remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) continue;
 
       const isFromMe = msg.key?.fromMe;
+
+      // Remember JID mapping
+      const cleanRemote = remoteJid.replace('@s.whatsapp.net', '').replace('@lid', '');
+      rememberJid(cleanRemote, remoteJid);
+      rememberJid(remoteJid, remoteJid);
 
       const participant = msg.key?.participant || '';
       let displayPhone = '';
@@ -272,16 +299,35 @@ app.post('/send', async (req, res) => {
   }
 
   try {
+    const clean = String(to).replace('+', '').trim();
     let jid;
-    if (to.includes('@')) {
-      jid = to;
+
+    if (clean.includes('@')) {
+      jid = clean;
+    } else if (knownJids[clean]) {
+      jid = knownJids[clean];
+    } else if (clean.length >= 14 && !clean.startsWith('996') && !clean.startsWith('7') && !clean.startsWith('1')) {
+      // 15-digit internal WhatsApp Privacy IDs (LIDs)
+      jid = `${clean}@lid`;
     } else {
-      const cleanPhone = to.replace(/\D/g, '');
-      jid = `${cleanPhone}@s.whatsapp.net`;
+      jid = `${clean.replace(/\D/g, '')}@s.whatsapp.net`;
     }
 
-    const sent = await sock.sendMessage(jid, { text });
-    console.log(`[WhatsApp Bridge] Sent message to ${jid}: ${text.slice(0, 40)}`);
+    let sent;
+    try {
+      sent = await sock.sendMessage(jid, { text });
+      console.log(`[WhatsApp Bridge] Sent message to ${jid}: ${text.slice(0, 40)}`);
+    } catch (sendErr) {
+      if (jid.endsWith('@s.whatsapp.net')) {
+        const fallbackLid = `${jid.replace('@s.whatsapp.net', '')}@lid`;
+        console.warn(`[WhatsApp Bridge] Error sending to ${jid} (${sendErr.message}). Retrying fallback to ${fallbackLid}...`);
+        sent = await sock.sendMessage(fallbackLid, { text });
+        jid = fallbackLid;
+        console.log(`[WhatsApp Bridge] Fallback sent message to ${jid}: ${text.slice(0, 40)}`);
+      } else {
+        throw sendErr;
+      }
+    }
 
     res.json({
       success: true,

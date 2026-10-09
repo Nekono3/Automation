@@ -97,7 +97,7 @@ export function ChatPanel({ conversation, messages, onModeChange, onMessageSent,
                 @{conversation.customer.username}
               </span>
             )}
-            {isWA && conversation.customer?.phone && (
+            {isWA && conversation.customer?.phone && !conversation.customer.phone.includes('@lid') && (
               <span className="text-xs text-emerald-700 font-mono hidden sm:inline truncate font-semibold">
                 {conversation.customer.phone}
               </span>

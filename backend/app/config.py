@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     INSTAGRAM_ACCOUNT_ID: str = ""
     WEBHOOK_VERIFY_TOKEN: str = "insta_crm_verify_token_dev"
 
+    # WhatsApp Business Cloud API
+    WHATSAPP_PHONE_NUMBER_ID: str = "1378072262054430"
+    WHATSAPP_BUSINESS_ACCOUNT_ID: str = "2001547353872902"
+    WHATSAPP_ACCESS_TOKEN: str = ""
+
     # AI Provider
     MISTRAL_API_KEY: str = ""
     AI_MODEL: str = "mistral-small-latest"

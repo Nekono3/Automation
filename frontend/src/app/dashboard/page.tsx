@@ -173,15 +173,22 @@ export default function DashboardPage() {
             </h3>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="px-3.5 py-1.5 bg-blue-50/80 rounded-xl border border-blue-100 flex items-center gap-2 text-xs">
-              <span className="text-slate-600 font-medium">Meta Instagram Graph:</span>
+              <span className="text-slate-600 font-medium">Meta Instagram:</span>
               <span className="text-[#283876] font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#283876]" />
                 Direct API • Подключен
               </span>
             </div>
-            <span className="text-xs text-slate-400 font-mono hidden md:inline">Сервер: 2.26.50.235</span>
+            <div className="px-3.5 py-1.5 bg-emerald-50/80 rounded-xl border border-emerald-100 flex items-center gap-2 text-xs">
+              <span className="text-slate-600 font-medium">WhatsApp Business:</span>
+              <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#25D366]" />
+                Cloud API • Подключен
+              </span>
+            </div>
+            <span className="text-xs text-slate-400 font-mono hidden lg:inline">Сервер: 2.26.50.235</span>
           </div>
         </div>
       </div>

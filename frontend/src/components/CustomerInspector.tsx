@@ -116,10 +116,22 @@ export function CustomerInspector({
 
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-medium">Канал связи</span>
-                <div className="flex items-center gap-1.5 text-[#283876] font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-[#283876]" />
-                  <span>Instagram Direct</span>
-                </div>
+                {customer.whatsapp_id ? (
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-[#25D366]" />
+                    <span>WhatsApp Business</span>
+                  </div>
+                ) : customer.telegram_id ? (
+                  <div className="flex items-center gap-1.5 text-sky-700 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-[#0088CC]" />
+                    <span>Telegram</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[#283876] font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-[#283876]" />
+                    <span>Instagram Direct</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -231,12 +243,23 @@ export function CustomerInspector({
                     <span className="text-slate-900 font-mono font-semibold">{customer.id}</span>
                   </div>
 
-                  <div className="flex justify-between items-center py-0.5">
-                    <span className="text-slate-500">Instagram Handle</span>
-                    <span className="text-[#283876] font-mono font-semibold truncate max-w-[150px]">
-                      {customer.username ? `@${customer.username}` : customer.instagram_id || 'Не указан'}
-                    </span>
-                  </div>
+                  {customer.whatsapp_id && (
+                    <div className="flex justify-between items-center py-0.5">
+                      <span className="text-slate-500">WhatsApp ID</span>
+                      <span className="text-emerald-700 font-mono font-semibold truncate max-w-[150px]">
+                        {customer.whatsapp_id}
+                      </span>
+                    </div>
+                  )}
+
+                  {customer.instagram_id && (
+                    <div className="flex justify-between items-center py-0.5">
+                      <span className="text-slate-500">Instagram Handle</span>
+                      <span className="text-[#283876] font-mono font-semibold truncate max-w-[150px]">
+                        {customer.username ? `@${customer.username}` : customer.instagram_id}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between items-center py-0.5">
                     <span className="text-slate-500">Телефон</span>

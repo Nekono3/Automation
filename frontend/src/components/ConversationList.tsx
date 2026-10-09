@@ -164,8 +164,10 @@ export function ConversationList({
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {filtered.map((conv) => {
           const isSelected = String(selectedId) === String(conv.id);
-          const customerName = conv.customer?.name || (conv.customer?.username ? `@${conv.customer.username}` : `Клиент #${conv.customer_id}`);
-          const snippet = conv.last_message_preview || (conv.messages && conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].text : 'Диалог в Instagram Direct');
+          const isWA = conv.channel === 'whatsapp';
+          const isTG = conv.channel === 'telegram';
+          const customerName = conv.customer?.name || (conv.customer?.username ? `@${conv.customer.username}` : (isWA && conv.customer?.phone ? conv.customer.phone : `Клиент #${conv.customer_id}`));
+          const snippet = conv.last_message_preview || (conv.messages && conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].text : (isWA ? 'Диалог в WhatsApp' : isTG ? 'Диалог в Telegram' : 'Диалог в Instagram Direct'));
           const shortTime = formatShortTime(conv.last_message_at);
           const isAI = conv.mode === 'ai';
 
@@ -184,10 +186,18 @@ export function ConversationList({
                 <div className="relative shrink-0 mt-0.5">
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shadow-sm ${
                     isSelected
-                      ? 'bg-[#283876] text-white shadow-[#283876]/20'
-                      : 'bg-blue-50 text-[#283876] border border-blue-100'
+                      ? isWA
+                        ? 'bg-[#25D366] text-white shadow-[#25D366]/20'
+                        : isTG
+                          ? 'bg-[#0088CC] text-white shadow-[#0088CC]/20'
+                          : 'bg-[#283876] text-white shadow-[#283876]/20'
+                      : isWA
+                        ? 'bg-emerald-50 text-[#128C7E] border border-emerald-200'
+                        : isTG
+                          ? 'bg-sky-50 text-[#0088CC] border border-sky-200'
+                          : 'bg-blue-50 text-[#283876] border border-blue-100'
                   }`}>
-                    <span>IG</span>
+                    <span>{isWA ? 'WA' : isTG ? 'TG' : 'IG'}</span>
                   </div>
 
                   {/* Mode sub-icon */}
@@ -242,9 +252,9 @@ export function ConversationList({
       <div className="p-2.5 border-t border-slate-100 flex items-center justify-center">
         <div className="bg-slate-50 border border-slate-200/80 rounded-full px-3.5 py-1 flex items-center gap-2 text-slate-600 text-xs shadow-inner">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-slate-800 font-semibold">Direct Live</span>
+          <span className="text-slate-800 font-semibold">Omnichannel Live</span>
           <span className="text-slate-400">•</span>
-          <span className="text-slate-500 font-mono">24/7</span>
+          <span className="text-slate-500 font-mono">IG / WA / TG</span>
         </div>
       </div>
     </div>

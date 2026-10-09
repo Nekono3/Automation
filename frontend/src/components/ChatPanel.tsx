@@ -42,7 +42,9 @@ export function ChatPanel({ conversation, messages, onModeChange, onMessageSent,
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const customerName = conversation.customer?.name || (conversation.customer?.username ? `@${conversation.customer.username}` : `Клиент #${conversation.customer_id}`);
+  const isWA = conversation.channel === 'whatsapp';
+  const isTG = conversation.channel === 'telegram';
+  const customerName = conversation.customer?.name || (conversation.customer?.username ? `@${conversation.customer.username}` : (isWA && conversation.customer?.phone ? conversation.customer.phone : `Клиент #${conversation.customer_id}`));
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,12 +97,29 @@ export function ChatPanel({ conversation, messages, onModeChange, onMessageSent,
                 @{conversation.customer.username}
               </span>
             )}
+            {isWA && conversation.customer?.phone && (
+              <span className="text-xs text-emerald-700 font-mono hidden sm:inline truncate font-semibold">
+                {conversation.customer.phone}
+              </span>
+            )}
           </div>
 
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-100 text-xs text-[#283876] font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#283876]" />
-            <span>Instagram Direct</span>
-          </div>
+          {isWA ? (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#25D366]" />
+              <span>WhatsApp Business</span>
+            </div>
+          ) : isTG ? (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-xs text-sky-800 font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0088CC]" />
+              <span>Telegram</span>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-100 text-xs text-[#283876] font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#283876]" />
+              <span>Instagram Direct</span>
+            </div>
+          )}
         </div>
 
         {/* Right Toolbar: Mode Switcher, Star, Snooze */}
@@ -178,7 +197,9 @@ export function ChatPanel({ conversation, messages, onModeChange, onMessageSent,
         <div className="text-center py-1">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-slate-200 text-xs text-slate-600 shadow-sm">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <span className="font-medium">Канал защищен • Прямая связь с Instagram Direct</span>
+            <span className="font-medium">
+              {isWA ? 'Канал защищен • Meta WhatsApp Cloud API' : isTG ? 'Канал защищен • Telegram Bot API' : 'Канал защищен • Прямая связь с Instagram Direct'}
+            </span>
           </div>
         </div>
 
@@ -292,7 +313,7 @@ export function ChatPanel({ conversation, messages, onModeChange, onMessageSent,
                 onClick={() => setShowReplyMenu(!showReplyMenu)}
                 className="flex items-center gap-1.5 font-bold text-slate-800 hover:text-[#283876] transition-colors cursor-pointer"
               >
-                <span>{replyType === 'reply' ? 'Ответ в Direct' : 'Внутренняя заметка'}</span>
+                <span>{replyType === 'reply' ? (isWA ? 'Ответ в WhatsApp' : isTG ? 'Ответ в Telegram' : 'Ответ в Direct') : 'Внутренняя заметка'}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
@@ -305,7 +326,7 @@ export function ChatPanel({ conversation, messages, onModeChange, onMessageSent,
                     onClick={() => { setReplyType('reply'); setShowReplyMenu(false); }}
                     className="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-medium cursor-pointer"
                   >
-                    Ответ в Direct
+                    {isWA ? 'Ответ в WhatsApp' : isTG ? 'Ответ в Telegram' : 'Ответ в Direct'}
                   </button>
                   <button
                     onClick={() => { setReplyType('note'); setShowReplyMenu(false); }}
@@ -332,7 +353,11 @@ export function ChatPanel({ conversation, messages, onModeChange, onMessageSent,
             placeholder={
               conversation.mode === 'ai'
                 ? 'Напишите ответ клиенту (отправка переключит режим на оператора)...'
-                : 'Введите сообщение в Instagram Direct...'
+                : isWA
+                  ? 'Введите сообщение в WhatsApp Business...'
+                  : isTG
+                    ? 'Введите сообщение в Telegram...'
+                    : 'Введите сообщение в Instagram Direct...'
             }
             className="w-full bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none resize-none leading-relaxed"
           />

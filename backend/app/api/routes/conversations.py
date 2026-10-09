@@ -91,9 +91,11 @@ async def send_operator_message(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
         
+    channel = conversation.channel or "instagram"
     msg = Message(
         conversation_id=conversation.id,
         customer_id=conversation.customer_id,
+        channel=channel,
         direction="outbound",
         sender_type="employee",
         text=payload.text,
@@ -106,8 +108,14 @@ async def send_operator_message(
     await db.commit()
     await db.refresh(msg)
     
-    client = InstagramClient()
-    await client.send_text_message(conversation.customer.instagram_id, payload.text)
+    if channel == "whatsapp" and (conversation.customer.phone or conversation.customer.whatsapp_id):
+        from app.integrations.whatsapp.client import WhatsAppClient
+        wa_client = WhatsAppClient()
+        target_phone = conversation.customer.phone or conversation.customer.whatsapp_id
+        await wa_client.send_text_message(target_phone, payload.text)
+    elif conversation.customer.instagram_id:
+        client = InstagramClient()
+        await client.send_text_message(conversation.customer.instagram_id, payload.text)
     
     return msg
 

@@ -44,19 +44,29 @@ async def process_and_reply_background(
             return
 
         # 1. Record AI response in database
+        channel = conversation.channel or "instagram"
         ai_msg, _ = await ConversationService.record_message(
             db=db,
             conversation_id=conversation.id,
             customer_id=customer.id,
-            channel="instagram",
+            channel=channel,
             direction="outbound",
             sender_type="ai",
             text=reply_text,
         )
-        logger.info("Saved AI reply #%d in database for conv #%d", ai_msg.id, conversation.id)
+        logger.info("Saved AI reply #%d in database for conv #%d (%s)", ai_msg.id, conversation.id, channel)
 
-        # 2. Send message to Instagram via Meta Graph API
-        if customer.instagram_id:
+        # 2. Deliver message to customer via appropriate channel API
+        if channel == "whatsapp" and (customer.phone or customer.whatsapp_id):
+            from app.integrations.whatsapp.client import WhatsAppClient
+            wa_client = WhatsAppClient()
+            target_phone = customer.phone or customer.whatsapp_id
+            send_result = await wa_client.send_text_message(
+                to_phone=target_phone,
+                text=reply_text,
+            )
+            logger.info("WhatsApp Cloud API delivery result for customer %s: %s", target_phone, send_result)
+        elif customer.instagram_id:
             client = InstagramClient()
             send_result = await client.send_text_message(
                 recipient_id=customer.instagram_id,

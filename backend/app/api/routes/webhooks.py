@@ -191,3 +191,145 @@ async def receive_instagram_event(
 
     await db.commit()
     return {"status": "ok", "events_processed": processed_count}
+
+
+# =========================================================================
+# WHATSAPP BUSINESS WEBHOOKS
+# =========================================================================
+
+@router.get("/whatsapp")
+async def verify_whatsapp_webhook(
+    mode: Optional[str] = Query(None, alias="hub.mode"),
+    challenge: Optional[str] = Query(None, alias="hub.challenge"),
+    verify_token: Optional[str] = Query(None, alias="hub.verify_token"),
+):
+    """
+    Meta WhatsApp Cloud API Webhook Verification Endpoint.
+    Responds to Meta's hub challenge during webhook setup in developer console.
+    """
+    logger.info("Received WhatsApp webhook challenge verification request.")
+
+    if mode == "subscribe" and verify_token == settings.WEBHOOK_VERIFY_TOKEN:
+        logger.info("WhatsApp webhook verification SUCCESSFUL. Responding with challenge.")
+        return PlainTextResponse(content=challenge or "", status_code=status.HTTP_200_OK)
+
+    logger.warning("WhatsApp webhook verification FAILED: token mismatch or wrong mode.")
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Verification token mismatch",
+    )
+
+
+@router.post("/whatsapp")
+async def receive_whatsapp_event(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    x_hub_signature_256: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Meta WhatsApp Cloud API Webhook Receiver.
+    Validates signature, prevents duplicate message processing, creates customer & message,
+    and dispatches to AI auto-responder.
+    """
+    raw_body = await request.body()
+    logger.info("RECEIVED WHATSAPP WEBHOOK POST event! Length: %d bytes", len(raw_body))
+
+    # Optional signature verification in production
+    is_valid_sig = validate_meta_signature(raw_body, x_hub_signature_256, settings.META_APP_SECRET)
+    if not is_valid_sig and settings.ENVIRONMENT == "production":
+        logger.warning("Rejected WhatsApp webhook event due to invalid HMAC signature in production.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid signature",
+        )
+
+    try:
+        payload = await request.json()
+    except Exception as exc:
+        logger.error("Failed to parse JSON body from WhatsApp webhook: %s", exc)
+        return {"status": "error", "message": "Invalid JSON"}
+
+    from app.integrations.whatsapp.parser import parse_whatsapp_payload
+    events = parse_whatsapp_payload(payload)
+    if not events:
+        logger.debug("WhatsApp webhook received with no actionable messaging events (possibly status receipt).")
+        return {"status": "ok", "events_processed": 0}
+
+    processed_count = 0
+
+    for event in events:
+        try:
+            # 1. Deduplication via message_id check
+            if event.message_id:
+                existing_event = await db.execute(
+                    select(WebhookEvent).where(WebhookEvent.event_id == event.message_id)
+                )
+                if existing_event.scalar_one_or_none():
+                    logger.info("Skipping already processed WhatsApp message ID: %s", event.message_id)
+                    continue
+
+                db.add(
+                    WebhookEvent(
+                        event_id=event.message_id,
+                        source="whatsapp",
+                        payload=event.raw_event,
+                        status="processed",
+                    )
+                )
+
+            # Skip empty messages without text
+            if not event.text:
+                continue
+
+            # 2. Lookup or create customer by phone number / wa_id
+            customer, _ = await CustomerService.get_or_create_by_whatsapp_id(
+                db=db,
+                whatsapp_id=event.sender_phone,
+                phone=event.sender_phone,
+                name=event.sender_name,
+            )
+
+            # 3. Lookup or create active conversation with channel='whatsapp'
+            conv, _ = await ConversationService.get_or_create_conversation(
+                db=db,
+                customer_id=customer.id,
+                channel="whatsapp",
+            )
+
+            # 4. Record inbound message
+            msg, is_new = await ConversationService.record_message(
+                db=db,
+                conversation_id=conv.id,
+                customer_id=customer.id,
+                channel="whatsapp",
+                direction="inbound",
+                sender_type="customer",
+                text=event.text,
+                external_message_id=event.message_id,
+            )
+
+            if is_new:
+                logger.info(
+                    "Recorded inbound WhatsApp message from %s (conv #%d): %s",
+                    customer.name,
+                    conv.id,
+                    event.text[:40],
+                )
+                # If conversation is in 'ai' mode, trigger AI responder in background
+                if conv.mode == "ai" and event.text:
+                    from app.services.ai_responder import process_and_reply_background
+                    background_tasks.add_task(
+                        process_and_reply_background,
+                        customer_id=customer.id,
+                        conversation_id=conv.id,
+                        incoming_text=event.text,
+                    )
+
+            processed_count += 1
+
+        except Exception as exc:
+            logger.error("Failed processing WhatsApp event %s: %s", event.message_id, exc)
+
+    await db.commit()
+    return {"status": "ok", "events_processed": processed_count}

@@ -54,6 +54,52 @@ class CustomerService:
         return customer, created
 
     @staticmethod
+    async def get_by_whatsapp_id(db: AsyncSession, whatsapp_id: str) -> Optional[Customer]:
+        result = await db.execute(
+            select(Customer).where(
+                or_(Customer.whatsapp_id == whatsapp_id, Customer.phone == whatsapp_id)
+            )
+        )
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_or_create_by_whatsapp_id(
+        db: AsyncSession,
+        whatsapp_id: str,
+        phone: Optional[str] = None,
+        name: Optional[str] = None,
+    ) -> tuple[Customer, bool]:
+        """Returns (customer, created). Updates last_contact_at."""
+        clean_phone = (phone or whatsapp_id).replace("+", "").replace(" ", "").replace("-", "")
+        customer = await CustomerService.get_by_whatsapp_id(db, clean_phone)
+        created = False
+        now = datetime.now(timezone.utc)
+
+        if customer:
+            if name and not customer.name:
+                customer.name = name
+            if not customer.whatsapp_id:
+                customer.whatsapp_id = clean_phone
+            if not customer.phone:
+                customer.phone = f"+{clean_phone}"
+            customer.last_contact_at = now
+            await db.commit()
+            await db.refresh(customer)
+        else:
+            customer = Customer(
+                whatsapp_id=clean_phone,
+                phone=f"+{clean_phone}",
+                name=name or f"WA-{clean_phone[-6:]}",
+                last_contact_at=now,
+            )
+            db.add(customer)
+            await db.commit()
+            await db.refresh(customer)
+            created = True
+
+        return customer, created
+
+    @staticmethod
     async def update(db: AsyncSession, customer_id: int, data: CustomerUpdate) -> Optional[Customer]:
         customer = await CustomerService.get_by_id(db, customer_id)
         if not customer:

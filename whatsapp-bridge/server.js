@@ -83,9 +83,6 @@ async function initWhatsApp() {
       if (remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) continue;
 
       const isFromMe = msg.key?.fromMe;
-      const remoteJid = msg.key?.remoteJid || '';
-      // Ignore status broadcasts and groups
-      if (remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) continue;
 
       const participant = msg.key?.participant || '';
       let displayPhone = '';

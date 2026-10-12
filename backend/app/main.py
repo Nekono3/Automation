@@ -42,6 +42,11 @@ async def lifespan(app: FastAPI):
             if seeded_admin:
                 logger.info("Seeded initial administrator account: %s", seeded_admin.email)
 
+            from app.services.automation_service import AutomationService
+            seeded_triggers = await AutomationService.seed_default_consulteam_triggers(session)
+            if seeded_triggers:
+                logger.info("Consulteam automation triggers active: %d", len(seeded_triggers))
+
     except Exception as exc:
         logger.error("Failed to initialize database on startup: %s", exc)
 
@@ -77,13 +82,18 @@ from app.api.routes.customers import router as customers_router
 from app.api.routes.bookings import router as bookings_router
 from app.api.routes.services import router as services_router
 from app.api.routes.dashboard import router as dashboard_router
-
+from app.api.routes.automations import router as automations_router
+from app.api.routes.deals import router as deals_router
+from app.api.routes.students import router as students_router
 
 app.include_router(conversations_router)
 app.include_router(customers_router)
 app.include_router(bookings_router)
 app.include_router(services_router)
 app.include_router(dashboard_router)
+app.include_router(automations_router)
+app.include_router(deals_router)
+app.include_router(students_router)
 
 
 

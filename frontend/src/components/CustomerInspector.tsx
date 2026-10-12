@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Customer, Booking } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import { Customer, Booking, StudentProfile } from '@/lib/types';
+import { api } from '@/lib/api';
 import { 
   User, 
   Calendar, 
@@ -14,7 +15,9 @@ import {
   Plus,
   Bot,
   Sparkles,
-  Copy
+  Copy,
+  GraduationCap,
+  Save
 } from 'lucide-react';
 
 interface Props {
@@ -37,7 +40,60 @@ export function CustomerInspector({
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('details');
   const [linksExpanded, setLinksExpanded] = useState(true);
   const [attributesExpanded, setAttributesExpanded] = useState(true);
+  const [studentExpanded, setStudentExpanded] = useState(true);
   const [actionSuccessId, setActionSuccessId] = useState<string | null>(null);
+
+  // EdTech Student Profile state
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [grade, setGrade] = useState('');
+  const [countries, setCountries] = useState('');
+  const [degree, setDegree] = useState('BACHELOR');
+  const [ielts, setIelts] = useState('');
+  const [budget, setBudget] = useState('FULL_SCHOLARSHIP_ONLY');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSavedMsg, setProfileSavedMsg] = useState(false);
+
+  useEffect(() => {
+    if (customer.id) {
+      api.getStudentProfile(customer.id).then((p) => {
+        if (p) {
+          setProfile(p);
+          setGrade(p.current_grade_or_status || '');
+          setCountries((p.target_countries || []).join(', '));
+          setDegree(p.target_degree || 'BACHELOR');
+          setIelts(p.language_tests?.ielts ? String(p.language_tests.ielts) : '');
+          setBudget(p.budget_expectation || 'FULL_SCHOLARSHIP_ONLY');
+        } else {
+          setProfile(null);
+          setGrade('');
+          setCountries('');
+          setDegree('BACHELOR');
+          setIelts('');
+          setBudget('FULL_SCHOLARSHIP_ONLY');
+        }
+      }).catch(() => {});
+    }
+  }, [customer.id]);
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const updated = await api.updateStudentProfile(customer.id, {
+        current_grade_or_status: grade,
+        target_countries: countries.split(',').map((c) => c.trim()).filter(Boolean),
+        target_degree: degree,
+        language_tests: ielts ? { ielts } : {},
+        budget_expectation: budget,
+      });
+      setProfile(updated);
+      setProfileSavedMsg(true);
+      setTimeout(() => setProfileSavedMsg(false), 2000);
+    } catch (err) {
+      console.error('Failed to update student profile:', err);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleConfirm = async (id: string) => {
     setActionSuccessId(id);
@@ -133,6 +189,101 @@ export function CustomerInspector({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* STUDENT PROFILE SECTION (CONSULTEAM EDTECH) */}
+            <div className="space-y-2 pb-3 border-b border-slate-100">
+              <div className="flex items-center justify-between text-slate-600">
+                <button
+                  onClick={() => setStudentExpanded(!studentExpanded)}
+                  className="flex items-center gap-1 font-bold text-xs tracking-wider uppercase text-slate-700 hover:text-slate-900 cursor-pointer"
+                >
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${studentExpanded ? '' : '-rotate-90'}`} />
+                  <GraduationCap className="w-3.5 h-3.5 text-[#283876]" />
+                  <span>ПРОФИЛЬ АБИТУРИЕНТА</span>
+                </button>
+                {profileSavedMsg && (
+                  <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-0.5">
+                    <Check className="w-3 h-3" /> Сохранено
+                  </span>
+                )}
+              </div>
+
+              {studentExpanded && (
+                <div className="space-y-2 bg-slate-50/80 p-3 rounded-xl border border-slate-200/80 text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Класс / Статус:</span>
+                    <input
+                      type="text"
+                      placeholder="11 класс, Студент 2 курса..."
+                      value={grade}
+                      onChange={(e) => setGrade(e.target.value)}
+                      className="w-full px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-[#283876]"
+                    />
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Целевые страны:</span>
+                    <input
+                      type="text"
+                      placeholder="Италия, США, Корея..."
+                      value={countries}
+                      onChange={(e) => setCountries(e.target.value)}
+                      className="w-full px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-[#283876]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Степень:</span>
+                      <select
+                        value={degree}
+                        onChange={(e) => setDegree(e.target.value)}
+                        className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-[#283876]"
+                      >
+                        <option value="BACHELOR">Бакалавриат</option>
+                        <option value="MASTER">Магистратура</option>
+                        <option value="FOUNDATION">Foundation</option>
+                        <option value="LANGUAGE_SCHOOL">Языковые курсы</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">IELTS / Тесты:</span>
+                      <input
+                        type="text"
+                        placeholder="6.5, SAT 1350..."
+                        value={ielts}
+                        onChange={(e) => setIelts(e.target.value)}
+                        className="w-full px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-[#283876]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Бюджет / Грант:</span>
+                    <select
+                      value={budget}
+                      onChange={(e) => setBudget(e.target.value)}
+                      className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-900 text-xs focus:outline-none focus:border-[#283876]"
+                    >
+                      <option value="FULL_SCHOLARSHIP_ONLY">Только полный грант (100%)</option>
+                      <option value="PARTIAL_GRANT">Частичный грант</option>
+                      <option value="SELF_FUNDED_UP_TO_5K">Платное (до $5,000/год)</option>
+                      <option value="SELF_FUNDED_ABOVE_10K">Платное ($10,000+/год)</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={savingProfile}
+                    className="w-full mt-1 py-1.5 bg-[#283876] hover:bg-[#1E2C60] text-white rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{savingProfile ? 'Сохранение...' : 'Сохранить профиль'}</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* LINKS / BOOKINGS SECTION */}

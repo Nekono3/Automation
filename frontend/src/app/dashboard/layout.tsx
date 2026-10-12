@@ -8,6 +8,8 @@ import {
   Users, 
   Calendar, 
   BarChart3, 
+  Trophy,
+  Zap,
   Settings, 
   LogOut, 
   Bell, 
@@ -41,10 +43,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const navItems = [
-    { href: '/dashboard/conversations', icon: Inbox, label: 'Входящие (Inbox)' },
+    { href: '/dashboard/conversations', icon: Inbox, label: 'Диалоги (Inbox)' },
+    { href: '/dashboard/pipeline', icon: Trophy, label: 'Воронки (Kanban)' },
+    { href: '/dashboard/automations', icon: Zap, label: 'Автоматизации (Триггеры)' },
     { href: '/dashboard', icon: BarChart3, label: 'Аналитика и сводка' },
-    { href: '/dashboard/customers', icon: Users, label: 'База клиентов' },
-    { href: '/dashboard/bookings', icon: Calendar, label: 'График записей' },
+    { href: '/dashboard/customers', icon: Users, label: 'Студенты и контакты' },
+    { href: '/dashboard/bookings', icon: Calendar, label: 'Консультации' },
   ];
 
   return (

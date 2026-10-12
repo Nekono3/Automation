@@ -167,7 +167,7 @@ class ApiClient {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    const res = await fetch(`${this.baseUrl}/automations/upload-attachment`, {
+    const res = await fetch(`${getApiUrl()}/api/automations/upload-attachment`, {
       method: 'POST',
       headers,
       body: formData,

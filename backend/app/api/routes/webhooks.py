@@ -272,8 +272,8 @@ async def receive_instagram_event(
                             db=db,
                             instagram_id=comment.sender_id,
                         )
-                        if comment.sender_username and not customer.instagram_username:
-                            customer.instagram_username = comment.sender_username
+                        if comment.sender_username and not customer.username:
+                            customer.username = comment.sender_username
                             customer.name = customer.name or comment.sender_username
 
                         conv, _ = await ConversationService.get_or_create_conversation(

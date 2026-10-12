@@ -12,7 +12,12 @@ from app.models.audit import WebhookEvent
 from app.services.customer_service import CustomerService
 from app.services.conversation_service import ConversationService
 from app.integrations.instagram.validator import validate_meta_signature
-from app.integrations.instagram.parser import parse_instagram_payload, InstagramMessageEvent
+from app.integrations.instagram.parser import (
+    parse_instagram_payload,
+    InstagramMessageEvent,
+    parse_instagram_comments,
+    InstagramCommentEvent,
+)
 
 logger = logging.getLogger("insta.webhook.routes")
 
@@ -185,10 +190,121 @@ async def receive_instagram_event(
                         incoming_text=event.text,
                     )
 
-            processed_count += 1
+    # 4. Handle Instagram Comment Events (field == 'comments', e.g. Reels/Post comments)
+    comment_events = parse_instagram_comments(payload)
+    if comment_events:
+        from app.services.automation_service import AutomationService
+        from app.integrations.instagram.client import InstagramClient
+        insta_client = InstagramClient()
 
-        except Exception as exc:
-            logger.error("Failed processing Instagram event %s: %s", event.message_id, exc)
+        for comment in comment_events:
+            try:
+                # Deduplicate comments
+                existing_comment = await db.execute(
+                    select(WebhookEvent).where(WebhookEvent.event_id == f"comment_{comment.comment_id}")
+                )
+                if existing_comment.scalar_one_or_none():
+                    logger.info("Skipping already processed comment ID: %s", comment.comment_id)
+                    continue
+
+                db.add(
+                    WebhookEvent(
+                        event_id=f"comment_{comment.comment_id}",
+                        source="instagram_comment",
+                        payload=comment.raw_event,
+                        status="processed",
+                    )
+                )
+
+                logger.info(
+                    "Processing Instagram comment @%s on media %s: '%s'",
+                    comment.sender_username,
+                    comment.media_id,
+                    comment.text,
+                )
+
+                # Match against automation triggers (Comment-to-DM)
+                trigger = await AutomationService.match_trigger(
+                    db=db,
+                    text=comment.text,
+                    channel="INSTAGRAM",
+                )
+
+                # If no direct match on INSTAGRAM, try ALL
+                if not trigger:
+                    trigger = await AutomationService.match_trigger(
+                        db=db,
+                        text=comment.text,
+                        channel="ALL",
+                    )
+
+                if trigger:
+                    logger.info("Trigger matched for comment: [%s] (ID #%d)", trigger.keyword, trigger.id)
+
+                    # 1. Public comment reply (if configured)
+                    if trigger.comment_reply_text:
+                        reply_res = await insta_client.reply_to_comment(
+                            comment_id=comment.comment_id,
+                            text=trigger.comment_reply_text,
+                        )
+                        logger.info("Public reply result: %s", reply_res)
+
+                    # 2. Private reply to user in Direct Message (Comment-to-DM)
+                    dm_text = trigger.dm_reply_text or "Здравствуйте! Мы получили ваш комментарий."
+                    if trigger.attachment_url:
+                        dm_text += f"\n\nМатериал: {trigger.attachment_url}"
+
+                    dm_res = await insta_client.send_private_reply(
+                        comment_id=comment.comment_id,
+                        text=dm_text,
+                    )
+                    logger.info("Private reply result: %s", dm_res)
+
+                    # 3. Create or find Customer and record message in CRM
+                    if comment.sender_id:
+                        customer, _ = await CustomerService.get_or_create_by_instagram_id(
+                            db=db,
+                            instagram_id=comment.sender_id,
+                        )
+                        if comment.sender_username and not customer.instagram_username:
+                            customer.instagram_username = comment.sender_username
+                            customer.name = customer.name or comment.sender_username
+
+                        conv, _ = await ConversationService.get_or_create_conversation(
+                            db=db, customer_id=customer.id
+                        )
+
+                        # Record inbound comment as customer message
+                        await ConversationService.record_message(
+                            db=db,
+                            conversation_id=conv.id,
+                            customer_id=customer.id,
+                            channel="instagram",
+                            direction="inbound",
+                            sender_type="customer",
+                            text=f"[Комментарий под Reels]: {comment.text}",
+                            external_message_id=comment.comment_id,
+                        )
+
+                        # Record outbound reply as bot message
+                        await ConversationService.record_message(
+                            db=db,
+                            conversation_id=conv.id,
+                            customer_id=customer.id,
+                            channel="instagram",
+                            direction="outbound",
+                            sender_type="ai",
+                            text=dm_text,
+                            external_message_id=dm_res.get("message_id") if isinstance(dm_res, dict) else None,
+                        )
+
+                    processed_count += 1
+
+                else:
+                    logger.info("No active trigger matched for comment: '%s'", comment.text)
+
+            except Exception as exc:
+                logger.error("Error processing comment event %s: %s", comment.comment_id, exc)
 
     await db.commit()
     return {"status": "ok", "events_processed": processed_count}

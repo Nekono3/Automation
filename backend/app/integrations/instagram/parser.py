@@ -71,3 +71,51 @@ def parse_instagram_payload(payload: Dict[str, Any]) -> List[InstagramMessageEve
                 logger.error("Error parsing individual messaging event in webhook: %s", exc)
 
     return events
+
+
+@dataclass
+class InstagramCommentEvent:
+    comment_id: str
+    media_id: str
+    sender_id: str
+    sender_username: str
+    text: str
+    media_product_type: Optional[str] = None
+    raw_event: Dict[str, Any] = field(default_factory=dict)
+
+
+def parse_instagram_comments(payload: Dict[str, Any]) -> List[InstagramCommentEvent]:
+    """
+    Parses comment webhook events from Meta (field: 'comments').
+    Example:
+    {"entry": [{"id": "...", "changes": [{"field": "comments", "value": {"from": {"id": "...", "username": "..."}, "id": "...", "text": "...", "media": {"id": "..."}}}]}]}
+    """
+    comments: List[InstagramCommentEvent] = []
+    for entry in payload.get("entry", []):
+        for change in entry.get("changes", []):
+            if change.get("field") == "comments":
+                val = change.get("value")
+                if isinstance(val, dict):
+                    comment_id = str(val.get("id", ""))
+                    from_user = val.get("from", {}) or {}
+                    sender_id = str(from_user.get("id", ""))
+                    sender_username = str(from_user.get("username", ""))
+                    text = str(val.get("text", ""))
+                    media = val.get("media", {}) or {}
+                    media_id = str(media.get("id", ""))
+                    media_type = media.get("media_product_type")
+
+                    if comment_id and text:
+                        comments.append(
+                            InstagramCommentEvent(
+                                comment_id=comment_id,
+                                media_id=media_id,
+                                sender_id=sender_id,
+                                sender_username=sender_username,
+                                text=text,
+                                media_product_type=media_type,
+                                raw_event=val,
+                            )
+                        )
+    return comments
+

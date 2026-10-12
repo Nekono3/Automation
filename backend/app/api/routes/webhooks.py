@@ -190,6 +190,11 @@ async def receive_instagram_event(
                         incoming_text=event.text,
                     )
 
+            processed_count += 1
+
+        except Exception as exc:
+            logger.error("Failed processing Instagram event %s: %s", event.message_id, exc)
+
     # 4. Handle Instagram Comment Events (field == 'comments', e.g. Reels/Post comments)
     comment_events = parse_instagram_comments(payload)
     if comment_events:

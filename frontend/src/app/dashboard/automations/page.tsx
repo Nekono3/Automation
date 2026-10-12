@@ -14,7 +14,9 @@ import {
   XCircle, 
   Sparkles,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Upload,
+  Link
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { AutomationTrigger } from '@/lib/types';
@@ -25,6 +27,7 @@ export default function AutomationsPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -107,6 +110,25 @@ export default function AutomationsPage() {
       fetchTriggers();
     } catch (err) {
       console.error('Save failed:', err);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const res = await api.uploadAutomationAttachment(file);
+      setFormData((prev) => ({
+        ...prev,
+        attachment_url: res.url,
+        attachment_name: res.filename,
+      }));
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Ошибка при загрузке файла. Попробуйте еще раз.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -425,32 +447,70 @@ export default function AutomationsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Ссылка на вложение / PDF
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-[#283876]" />
+                    Вложение / PDF Гайд
                   </label>
-                  <input
-                    type="url"
-                    placeholder="https://consulteam.kg/guide.pdf"
-                    value={formData.attachment_url}
-                    onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#283876]/20 focus:border-[#283876]"
-                  />
+                  <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[#283876] bg-white border border-[#283876]/20 rounded-lg hover:bg-slate-100 transition shadow-sm">
+                    <Upload className="w-3 h-3" />
+                    <span>{uploading ? 'Загрузка...' : 'Загрузить PDF с диска'}</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Название документа
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Consulteam_Italy_Guide.pdf"
-                    value={formData.attachment_name}
-                    onChange={(e) => setFormData({ ...formData, attachment_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#283876]/20 focus:border-[#283876]"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-0.5">
+                      Прямая ссылка на файл (URL)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://2-26-50-235.sslip.io/guides/guide.pdf"
+                      value={formData.attachment_url}
+                      onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#283876]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-0.5">
+                      Название файла (для отображения)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Consulteam_USA_Guide.pdf"
+                      value={formData.attachment_name}
+                      onChange={(e) => setFormData({ ...formData, attachment_name: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#283876]"
+                    />
+                  </div>
                 </div>
+
+                {formData.attachment_url && (
+                  <div className="mt-2 flex items-center justify-between px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span className="truncate font-medium">{formData.attachment_name || 'Файл прикреплен'}</span>
+                    </div>
+                    <a
+                      href={formData.attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-700 hover:text-emerald-900 font-semibold underline flex items-center gap-1 shrink-0 ml-2"
+                    >
+                      <span>Открыть</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -159,6 +159,25 @@ class ApiClient {
     });
   }
 
+  async uploadAutomationAttachment(file: File): Promise<{ status: string; filename: string; saved_filename: string; url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(`${this.baseUrl}/automations/upload-attachment`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!res.ok) {
+      throw new Error(`Upload failed: ${res.statusText}`);
+    }
+    return res.json();
+  }
+
   // Deals & Pipelines (Kanban)
   async getDeals(pipelineType?: string, customerId?: string): Promise<import('./types').Deal[]> {
     const params = new URLSearchParams();

@@ -73,3 +73,37 @@ async def delete_automation_trigger(
     if not deleted:
         raise HTTPException(status_code=404, detail="Trigger not found")
     return {"status": "deleted", "id": trigger_id}
+
+
+from fastapi import UploadFile, File
+import shutil
+import uuid
+import os
+
+@router.post("/upload-attachment")
+async def upload_automation_attachment(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Uploads a PDF guide or attachment file to the CRM server."""
+    filename = file.filename or f"guide_{uuid.uuid4().hex[:8]}.pdf"
+    clean_name = "".join(c for c in filename if c.isalnum() or c in (".", "_", "-")).strip()
+    unique_filename = f"{uuid.uuid4().hex[:6]}_{clean_name}"
+
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static")
+    target_dir = os.path.join(static_dir, "guides")
+    os.makedirs(target_dir, exist_ok=True)
+
+    dest_path = os.path.join(target_dir, unique_filename)
+    with open(dest_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Return public URL accessible via sslip.io / IP
+    public_url = f"https://2-26-50-235.sslip.io/guides/{unique_filename}"
+    return {
+        "status": "ok",
+        "filename": filename,
+        "saved_filename": unique_filename,
+        "url": public_url,
+    }
+

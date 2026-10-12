@@ -95,6 +95,17 @@ app.include_router(automations_router)
 app.include_router(deals_router)
 app.include_router(students_router)
 
+# Mount Static Files (PDF guides & uploaded media)
+import os
+from fastapi.staticfiles import StaticFiles
+
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+os.makedirs(os.path.join(static_dir, "guides"), exist_ok=True)
+os.makedirs(os.path.join(static_dir, "uploads"), exist_ok=True)
+
+app.mount("/guides", StaticFiles(directory=os.path.join(static_dir, "guides")), name="guides")
+app.mount("/uploads", StaticFiles(directory=os.path.join(static_dir, "uploads")), name="uploads")
+
 
 
 @app.get("/api/health", status_code=status.HTTP_200_OK, tags=["Health"])

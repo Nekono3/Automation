@@ -90,7 +90,7 @@ async def upload_automation_attachment(
     clean_name = "".join(c for c in filename if c.isalnum() or c in (".", "_", "-")).strip()
     unique_filename = f"{uuid.uuid4().hex[:6]}_{clean_name}"
 
-    static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static")
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "static")
     target_dir = os.path.join(static_dir, "guides")
     os.makedirs(target_dir, exist_ok=True)
 

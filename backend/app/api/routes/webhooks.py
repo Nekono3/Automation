@@ -78,8 +78,10 @@ async def receive_instagram_event(
         return {"status": "error", "message": "Invalid JSON"}
 
     events = parse_instagram_payload(payload)
-    if not events:
-        logger.debug("Webhook received with no actionable messaging events.")
+    comment_events = parse_instagram_comments(payload)
+
+    if not events and not comment_events:
+        logger.debug("Webhook received with no actionable messaging or comment events.")
         return {"status": "ok", "events_processed": 0}
 
     processed_count = 0
@@ -196,7 +198,6 @@ async def receive_instagram_event(
             logger.error("Failed processing Instagram event %s: %s", event.message_id, exc)
 
     # 4. Handle Instagram Comment Events (field == 'comments', e.g. Reels/Post comments)
-    comment_events = parse_instagram_comments(payload)
     if comment_events:
         from app.services.automation_service import AutomationService
         from app.integrations.instagram.client import InstagramClient

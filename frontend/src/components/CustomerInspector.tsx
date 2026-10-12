@@ -55,7 +55,7 @@ export function CustomerInspector({
 
   useEffect(() => {
     if (customer.id) {
-      api.getStudentProfile(customer.id).then((p) => {
+      api.getStudentProfile(customer.id).then((p: any) => {
         if (p) {
           setProfile(p);
           setGrade(p.current_grade_or_status || '');

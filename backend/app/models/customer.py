@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
-from sqlalchemy import String, Text, DateTime, JSON
+from sqlalchemy import String, Text, DateTime, JSON, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base

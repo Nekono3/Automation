@@ -76,7 +76,7 @@ export default function PipelinePage() {
         prev.map((d) => (d.id === dealId ? { ...d, stage: newStage } : d))
       );
       if (selectedDeal && selectedDeal.id === dealId) {
-        setSelectedDeal((prev) => (prev ? { ...prev, stage: newStage } : null));
+        setSelectedDeal((prev: Deal | null) => (prev ? { ...prev, stage: newStage } : null));
       }
     } catch (err) {
       console.error('Stage update error:', err);
@@ -214,7 +214,7 @@ export default function PipelinePage() {
                         <div className="flex items-center gap-1">
                           <FileText className="w-3 h-3 text-slate-400" />
                           <span>
-                            {deal.checklists.filter((c) => c.status === 'ACCEPTED').length}/{deal.checklists.length} док.
+                            {deal.checklists.filter((c: any) => c.status === 'ACCEPTED').length}/{deal.checklists.length} док.
                           </span>
                         </div>
                       </div>
@@ -292,7 +292,7 @@ export default function PipelinePage() {
                     Чек-лист документов абитуриента:
                   </h4>
                   <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    {selectedDeal.checklists.map((chk) => (
+                    {selectedDeal.checklists.map((chk: any) => (
                       <div
                         key={chk.id}
                         className="flex items-center justify-between p-1.5 bg-white rounded-lg border border-slate-200 text-xs"

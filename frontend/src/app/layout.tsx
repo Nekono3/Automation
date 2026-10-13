@@ -6,8 +6,17 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
-  title: "INSTA CRM",
-  description: "Next.js CRM for INSTA",
+  title: "Consulteam CRM | EdTech & AI Sales Platform",
+  description: "Омниканальная CRM и AI Sales Agent для образовательного агентства Consulteam",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png" },
+    ],
+  },
 };
 
 export default function RootLayout({

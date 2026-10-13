@@ -129,12 +129,12 @@ export default function PipelinePage() {
 
           <div className="flex items-center gap-3">
             {/* Pipeline Tabs */}
-            <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold">
+            <div className="bg-slate-100 p-1.5 rounded-2xl flex items-center text-xs font-semibold shadow-inner">
               <button
                 onClick={() => setPipelineType('SALES')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all cursor-pointer ${
                   pipelineType === 'SALES'
-                    ? 'bg-[#283876] text-white shadow-xs'
+                    ? 'bg-[#283876] text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -144,9 +144,9 @@ export default function PipelinePage() {
 
               <button
                 onClick={() => setPipelineType('ADMISSION')}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all cursor-pointer ${
                   pipelineType === 'ADMISSION'
-                    ? 'bg-[#283876] text-white shadow-xs'
+                    ? 'bg-[#283876] text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -157,7 +157,7 @@ export default function PipelinePage() {
 
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#283876] hover:bg-[#1E2C60] text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#283876] hover:bg-[#1E2C60] text-white rounded-2xl text-xs font-semibold shadow-sm transition-all cursor-pointer hover:shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>Создать сделку</span>
@@ -173,10 +173,10 @@ export default function PipelinePage() {
           return (
             <div
               key={stg.id}
-              className="w-72 shrink-0 bg-slate-100/70 border border-slate-200/80 rounded-2xl flex flex-col max-h-full overflow-hidden"
+              className="w-72 shrink-0 bg-slate-100/80 border border-slate-200/90 rounded-3xl flex flex-col max-h-full overflow-hidden shadow-xs"
             >
               {/* Column Header */}
-              <div className="p-3 border-b border-slate-200/80 flex items-center justify-between bg-white/70">
+              <div className="p-3.5 border-b border-slate-200/80 flex items-center justify-between bg-white/80 backdrop-blur-xs rounded-t-3xl">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-xs text-slate-800">{stg.label}</span>
                   <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[11px] font-bold">
@@ -186,25 +186,25 @@ export default function PipelinePage() {
               </div>
 
               {/* Deals Cards in Column */}
-              <div className="p-2.5 overflow-y-auto space-y-2.5 flex-1">
+              <div className="p-3 overflow-y-auto space-y-3 flex-1">
                 {stageDeals.map((deal) => (
                   <div
                     key={deal.id}
                     onClick={() => setSelectedDeal(deal)}
-                    className="p-3.5 bg-white border border-slate-200/90 rounded-xl shadow-xs hover:shadow-sm hover:border-[#283876]/40 transition-all cursor-pointer text-xs"
+                    className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-xs hover:shadow-md hover:border-[#283876]/40 transition-all cursor-pointer text-xs"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="font-bold text-slate-900 line-clamp-1">{deal.title}</span>
                       {deal.target_country && (
-                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[#283876] font-semibold text-[10px] shrink-0">
+                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-[#283876] font-semibold text-[10px] shrink-0 border border-blue-100">
                           {deal.target_country}
                         </span>
                       )}
                     </div>
 
                     {deal.customer && (
-                      <div className="flex items-center gap-1.5 text-slate-500 mt-1.5 text-[11px]">
-                        <User className="w-3 h-3 text-slate-400" />
+                      <div className="flex items-center gap-1.5 text-slate-500 mt-2 text-[11px]">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
                         <span className="truncate">{deal.customer.name || deal.customer.username || deal.customer.phone}</span>
                       </div>
                     )}
@@ -221,13 +221,13 @@ export default function PipelinePage() {
                     )}
 
                     {/* Quick Move Select */}
-                    <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between gap-1 text-[11px]">
-                      <span className="text-slate-400">Стадия:</span>
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1 text-[11px]">
+                      <span className="text-slate-400 font-medium">Стадия:</span>
                       <select
                         value={deal.stage}
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => handleStageChange(deal.id, e.target.value)}
-                        className="bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 font-medium text-[11px] focus:outline-none"
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-slate-700 font-medium text-[11px] focus:outline-none focus:ring-1 focus:ring-[#283876]"
                       >
                         {stages.map((s) => (
                           <option key={s.id} value={s.id}>

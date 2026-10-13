@@ -57,20 +57,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="w-16 bg-white border-r border-slate-200/90 flex flex-col items-center justify-between py-3 z-30 shrink-0 select-none shadow-[1px_0_3px_rgba(0,0,0,0.02)]">
         {/* Top: Brand TC Logo & Nav */}
         <div className="flex flex-col items-center gap-3.5 w-full">
-          {/* Official TC Monogram Logo */}
+          {/* Official TC Monogram Logo (Circular Pill) */}
           <Link 
             href="/dashboard/conversations"
             onClick={(e) => {
               e.preventDefault();
               router.push('/dashboard/conversations');
             }}
-            className="w-11 h-11 rounded-xl bg-white border border-slate-200 hover:border-[#283876]/40 flex items-center justify-center p-1 hover:shadow-md transition-all duration-150 cursor-pointer group"
-            title="TC Consulting CRM"
+            className="w-11 h-11 rounded-full bg-white border border-slate-200 hover:border-[#283876]/40 flex items-center justify-center p-1 hover:shadow-md transition-all duration-150 cursor-pointer group shadow-xs"
+            title="Consulteam CRM"
           >
             <img 
-              src="/tc-logo.png" 
-              alt="TC Logo" 
-              className="w-8 h-8 object-contain transition-transform group-hover:scale-105" 
+              src="/consulteam-round-badge.png" 
+              alt="Consulteam Logo" 
+              className="w-8 h-8 rounded-full object-contain transition-transform group-hover:scale-105" 
             />
           </Link>
 
@@ -90,10 +90,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     e.preventDefault();
                     router.push(item.href);
                   }}
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center relative transition-all duration-150 group cursor-pointer ${
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center relative transition-all duration-150 group cursor-pointer ${
                     isActive
-                      ? 'bg-[#283876] text-white shadow-sm shadow-[#283876]/20'
-                      : 'text-slate-500 hover:text-[#283876] hover:bg-slate-100/80'
+                      ? 'bg-[#283876] text-white shadow-sm shadow-[#283876]/20 rounded-full'
+                      : 'text-slate-500 hover:text-[#283876] hover:bg-slate-100/80 rounded-2xl'
                   }`}
                   title={item.label}
                 >

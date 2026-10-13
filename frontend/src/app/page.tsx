@@ -32,17 +32,17 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900 p-4">
       <div className="w-full max-w-md p-8 sm:p-10 space-y-6 bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80">
-        {/* Brand Header with TC Monogram */}
+        {/* Brand Header with Consulteam Monogram */}
         <div className="text-center flex flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center p-2 mb-3 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-white border border-slate-200 flex items-center justify-center p-2 mb-3 shadow-md">
             <img 
-              src="/tc-logo.png" 
-              alt="TC Logo" 
-              className="w-12 h-12 object-contain" 
+              src="/consulteam-round-badge.png" 
+              alt="Consulteam Logo" 
+              className="w-12 h-12 rounded-full object-contain" 
             />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            TC CRM Desk
+            Consulteam CRM
           </h1>
           <p className="mt-1 text-xs text-slate-500 font-medium">
             Управление диалогами Instagram Direct и консультациями

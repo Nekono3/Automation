@@ -41,7 +41,7 @@ flowchart TD
     end
 
     subgraph Data["3. Storage & Relational Models"]
-        LeadValidator --> PG[(PostgreSQL 16 DB)]
+        LeadValidator --> PG[("PostgreSQL 16 DB")]
         PG --> LeadsTable[Leads & Client Profiles]
         PG --> ConvsTable[Message History & Dialog Context]
         PG --> ApptsTable[Booked Consultation Slots]

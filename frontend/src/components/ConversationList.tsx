@@ -11,6 +11,8 @@ import {
 import { formatDistanceToNowStrict } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
+import { WhatsAppIcon, InstagramIcon } from '@/components/ChannelIcons';
+
 interface Props {
   conversations: Conversation[];
   selectedId: string | null;
@@ -166,7 +168,10 @@ export function ConversationList({
           const isSelected = String(selectedId) === String(conv.id);
           const isWA = conv.channel === 'whatsapp';
           const isTG = conv.channel === 'telegram';
-          const customerName = conv.customer?.name || (conv.customer?.username ? `@${conv.customer.username}` : (isWA && conv.customer?.phone ? conv.customer.phone : `Клиент #${conv.customer_id}`));
+          const isCustNameValid = conv.customer?.name && !conv.customer.name.startsWith('IG-') && !conv.customer.name.startsWith('WA-') && !conv.customer.name.startsWith('WhatsApp ');
+          const customerName = isCustNameValid
+            ? conv.customer!.name
+            : (conv.customer?.username ? `@${conv.customer.username}` : (conv.customer?.phone || `Клиент #${conv.customer_id}`));
           const snippet = conv.last_message_preview || (conv.messages && conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].text : (isWA ? 'Диалог в WhatsApp' : isTG ? 'Диалог в Telegram' : 'Диалог в Instagram Direct'));
           const shortTime = formatShortTime(conv.last_message_at);
           const isAI = conv.mode === 'ai';
@@ -195,9 +200,15 @@ export function ConversationList({
                         ? 'bg-emerald-50 text-[#128C7E] border border-emerald-200'
                         : isTG
                           ? 'bg-sky-50 text-[#0088CC] border border-sky-200'
-                          : 'bg-blue-50 text-[#283876] border border-blue-100'
+                          : 'bg-gradient-to-tr from-amber-50 via-rose-50 to-purple-50 text-[#C13584] border border-pink-200/60'
                   }`}>
-                    <span>{isWA ? 'WA' : isTG ? 'TG' : 'IG'}</span>
+                    {isWA ? (
+                      <WhatsAppIcon className="w-4 h-4" />
+                    ) : isTG ? (
+                      <span>TG</span>
+                    ) : (
+                      <InstagramIcon className="w-4 h-4" />
+                    )}
                   </div>
 
                   {/* Mode sub-icon */}

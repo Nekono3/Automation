@@ -148,3 +148,32 @@ class InstagramClient:
                 return resp.json()
             except Exception as exc:
                 return {"error": str(exc)}
+
+    async def get_user_profile(self, user_id: str) -> Dict[str, Any]:
+        """
+        Fetches the user's public profile (name, username, profile_pic) from Instagram Graph API.
+        Endpoint: GET /{user_id}?fields=name,username,profile_pic
+        """
+        if not self.access_token:
+            return {}
+
+        base_url = "https://graph.instagram.com/v21.0" if self.access_token.startswith("IG") else GRAPH_API_BASE_URL
+        url = f"{base_url}/{user_id}"
+        params = {
+            "fields": "name,username,profile_pic",
+            "access_token": self.access_token,
+        }
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                resp = await client.get(url, params=params)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    logger.info("Successfully fetched Instagram profile for %s: %s", user_id, data)
+                    return data
+                else:
+                    logger.warning("Failed to fetch Instagram profile for %s: HTTP %d - %s", user_id, resp.status_code, resp.text)
+                    return {}
+            except Exception as exc:
+                logger.error("Exception fetching Instagram user profile for %s: %s", user_id, exc)
+                return {}

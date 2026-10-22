@@ -147,3 +147,28 @@ class DealService:
         await db.commit()
         await db.refresh(chk)
         return chk
+
+    @staticmethod
+    async def sync_customer_deal_title(db: AsyncSession, customer_id: int):
+        """Updates active deal titles when customer gets a real name, username or phone."""
+        cust_res = await db.execute(select(Customer).where(Customer.id == customer_id))
+        cust = cust_res.scalar_one_or_none()
+        if not cust:
+            return
+
+        display_name = cust.name
+        if not display_name or display_name.startswith("IG-") or display_name.startswith("WA-") or display_name.startswith("WhatsApp "):
+            display_name = cust.username or cust.phone or "Абитуриент"
+
+        contact_detail = cust.phone or (f"@{cust.username}" if cust.username else "")
+        new_title = f"{display_name} ({contact_detail})" if contact_detail and contact_detail not in display_name else display_name
+
+        deals_res = await db.execute(
+            select(Deal).where(Deal.customer_id == customer_id)
+        )
+        for deal in deals_res.scalars().all():
+            if deal.pipeline_type == "SALES":
+                deal.title = new_title
+            elif deal.pipeline_type == "ADMISSION":
+                deal.title = f"Поступление: {display_name}"
+        await db.commit()

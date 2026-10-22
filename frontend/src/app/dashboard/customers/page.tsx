@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { ChannelBadge, WhatsAppIcon, InstagramIcon } from '@/components/ChannelIcons';
 
 export default function CustomersPage() {
   const router = useRouter();
@@ -165,8 +166,18 @@ export default function CustomersPage() {
                             {initials}
                           </div>
                           <div>
-                            <div className="font-bold text-slate-900">
-                              {customer.name}
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900">
+                                {customer.name && !customer.name.startsWith('IG-') && !customer.name.startsWith('WA-')
+                                  ? customer.name
+                                  : (customer.username ? `@${customer.username}` : customer.name)}
+                              </span>
+                              <ChannelBadge
+                                instagramId={customer.instagram_id}
+                                whatsappId={customer.whatsapp_id}
+                                phone={customer.phone}
+                                size="sm"
+                              />
                             </div>
                             <div className="text-xs text-slate-400 font-mono">
                               ID: #{customer.id}

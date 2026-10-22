@@ -19,6 +19,7 @@ import {
   GraduationCap,
   Save
 } from 'lucide-react';
+import { ChannelBadge, WhatsAppIcon, InstagramIcon } from '@/components/ChannelIcons';
 
 interface Props {
   customer: Customer;
@@ -172,22 +173,11 @@ export function CustomerInspector({
 
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-medium">Канал связи</span>
-                {customer.whatsapp_id ? (
-                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-[#25D366]" />
-                    <span>WhatsApp Business</span>
-                  </div>
-                ) : customer.telegram_id ? (
-                  <div className="flex items-center gap-1.5 text-sky-700 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-[#0088CC]" />
-                    <span>Telegram</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-[#283876] font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-[#283876]" />
-                    <span>Instagram Direct</span>
-                  </div>
-                )}
+                <ChannelBadge
+                  instagramId={customer.instagram_id}
+                  whatsappId={customer.whatsapp_id}
+                  phone={customer.phone}
+                />
               </div>
             </div>
 

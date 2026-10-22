@@ -159,6 +159,26 @@ async def receive_instagram_event(
                 db=db,
                 instagram_id=event.sender_id,
             )
+
+            # Auto-enrich customer name and username via Instagram Graph API
+            if customer.name.startswith("IG-") or not customer.username:
+                try:
+                    from app.integrations.instagram.client import InstagramClient
+                    from app.services.deal_service import DealService
+                    ig_client = InstagramClient()
+                    ig_prof = await ig_client.get_user_profile(event.sender_id)
+                    if ig_prof:
+                        if ig_prof.get("username"):
+                            customer.username = ig_prof["username"]
+                        if ig_prof.get("name"):
+                            customer.name = ig_prof["name"]
+                        elif ig_prof.get("username") and customer.name.startswith("IG-"):
+                            customer.name = ig_prof["username"]
+                        await db.commit()
+                        await DealService.sync_customer_deal_title(db, customer.id)
+                except Exception as exc:
+                    logger.warning("Failed to enrich Instagram profile: %s", exc)
+
             conv, _ = await ConversationService.get_or_create_conversation(
                 db=db, customer_id=customer.id
             )
@@ -274,7 +294,24 @@ async def receive_instagram_event(
                         )
                         if comment.sender_username and not customer.username:
                             customer.username = comment.sender_username
-                            customer.name = customer.name or comment.sender_username
+                            if customer.name.startswith("IG-"):
+                                customer.name = comment.sender_username
+
+                        if customer.name.startswith("IG-") or not customer.username:
+                            try:
+                                ig_prof = await insta_client.get_user_profile(comment.sender_id)
+                                if ig_prof:
+                                    if ig_prof.get("username"):
+                                        customer.username = ig_prof["username"]
+                                    if ig_prof.get("name"):
+                                        customer.name = ig_prof["name"]
+                                    elif ig_prof.get("username") and customer.name.startswith("IG-"):
+                                        customer.name = ig_prof["username"]
+                                    await db.commit()
+                                    from app.services.deal_service import DealService
+                                    await DealService.sync_customer_deal_title(db, customer.id)
+                            except Exception as exc:
+                                logger.warning("Failed to enrich comment author profile: %s", exc)
 
                         conv, _ = await ConversationService.get_or_create_conversation(
                             db=db, customer_id=customer.id

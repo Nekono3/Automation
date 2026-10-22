@@ -31,14 +31,20 @@ class CustomerService:
         now = datetime.now(timezone.utc)
 
         if customer:
+            name_updated = False
             # Update username/name if newly provided
             if username and not customer.username:
                 customer.username = username
-            if name and not customer.name:
+                name_updated = True
+            if name and (not customer.name or customer.name.startswith("IG-")):
                 customer.name = name
+                name_updated = True
             customer.last_contact_at = now
             await db.commit()
             await db.refresh(customer)
+            if name_updated:
+                from app.services.deal_service import DealService
+                await DealService.sync_customer_deal_title(db, customer.id)
         else:
             customer = Customer(
                 instagram_id=instagram_id,
@@ -88,15 +94,21 @@ class CustomerService:
         formatted_phone = f"+{display_phone}" if display_phone else None
 
         if customer:
+            name_updated = False
             if name and (not customer.name or customer.name.startswith("WA-") or customer.name.startswith("WhatsApp ")):
                 customer.name = name
+                name_updated = True
             if not customer.whatsapp_id or "@lid" in target_wa_id:
                 customer.whatsapp_id = target_wa_id
             if not customer.phone and formatted_phone:
                 customer.phone = formatted_phone
+                name_updated = True
             customer.last_contact_at = now
             await db.commit()
             await db.refresh(customer)
+            if name_updated:
+                from app.services.deal_service import DealService
+                await DealService.sync_customer_deal_title(db, customer.id)
         else:
             customer = Customer(
                 whatsapp_id=target_wa_id,

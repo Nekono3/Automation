@@ -235,16 +235,52 @@ class MistralConsultingAgent:
                 logger.info("Updated StudentProfile for customer #%d: %s", customer.id, profile_updates)
 
             # 7. Customer phone & name detection
-            phone_match = re.search(r"(\+?\d[\d\s\-\(\)]{8,}\d)", incoming_message)
-            if phone_match:
-                extracted_phone = phone_match.group(1).replace(" ", "").replace("-", "")
-                customer.phone = extracted_phone
-                await db.commit()
-                logger.info("Captured customer phone number: %s", extracted_phone)
+            last_assistant_msg = ""
+            for m in reversed(recent_messages):
+                if m.sender_type != "customer" and m.text:
+                    last_assistant_msg = m.text.lower()
+                    break
 
-            name_match = re.search(r"(?:меня зовут|имя)\s+([А-Яа-яЁёA-Za-z\-]+(?:\s+[А-Яа-яЁёA-Za-z\-]+)?)", incoming_message, re.IGNORECASE)
-            if name_match:
-                extracted_name = name_match.group(1).strip()
+            # Phone extraction & normalization
+            phone_match = re.search(r"(\+?\d[\d\s\-\(\)]{7,}\d)", incoming_message)
+            if phone_match:
+                raw_phone = re.sub(r"[^\d+]", "", phone_match.group(1))
+                if raw_phone.startswith("0") and len(raw_phone) == 10:
+                    normalized_phone = f"+996{raw_phone[1:]}"
+                elif not raw_phone.startswith("+"):
+                    normalized_phone = f"+{raw_phone}"
+                else:
+                    normalized_phone = raw_phone
+
+                if len(normalized_phone) >= 10:
+                    customer.phone = normalized_phone
+                    await db.commit()
+                    logger.info("Captured & normalized customer phone: %s", normalized_phone)
+
+            # Name extraction
+            extracted_name = None
+            name_pattern_1 = re.search(
+                r"(?:меня зовут|мое имя|менин атым|атым|зовут|я)\s*:?\s*([А-Яа-яЁёA-Za-z\-]+(?:\s+[А-Яа-яЁёA-Za-z\-]+)?)",
+                incoming_message,
+                re.IGNORECASE,
+            )
+            name_pattern_phone = re.search(
+                r"^([А-Яа-яЁёA-Za-z\-]+(?:\s+[А-Яа-яЁёA-Za-z\-]+)?)[,\s]+(?:\+?\d[\d\s\-\(\)]{7,}\d)",
+                incoming_message.strip(),
+            )
+
+            if name_pattern_1:
+                extracted_name = name_pattern_1.group(1).strip()
+            elif name_pattern_phone:
+                extracted_name = name_pattern_phone.group(1).strip()
+            elif any(k in last_assistant_msg for k in ["как вас зовут", "ваше имя", "атыңыз", "подскажите имя"]):
+                cleaned = re.sub(r"[^\w\s\-]", "", incoming_message).strip()
+                tokens = cleaned.split()
+                stop_words = {"да", "нет", "ок", "салам", "здравствуйте", "привет", "хорошо", "хочу", "поступить", "сша", "италия"}
+                if 1 <= len(tokens) <= 3 and not any(t.lower() in stop_words for t in tokens):
+                    extracted_name = " ".join([t.title() for t in tokens])
+
+            if extracted_name and len(extracted_name) >= 2:
                 customer.name = extracted_name
                 await db.commit()
                 logger.info("Captured customer name: %s", extracted_name)
@@ -256,12 +292,15 @@ class MistralConsultingAgent:
                 lead_deal = await DealService.create_deal(
                     db=db,
                     data=DealCreate(
-                        title=f"{customer.name or 'Абитуриент'} ({customer.username or customer.phone or 'Лид'})",
+                        title=f"{customer.name or 'Абитуриент'} ({customer.phone or customer.username or 'Лид'})",
                         customer_id=customer.id,
                         pipeline_type="SALES",
                         stage="NEW_LEAD",
                     ),
                 )
+            else:
+                # Keep deal title synced with customer name & phone
+                await DealService.sync_customer_deal_title(db, customer.id)
 
             # Check if qualified
             if lead_deal.stage == "NEW_LEAD" and (detected_countries or "current_grade_or_status" in profile_updates):
@@ -271,9 +310,12 @@ class MistralConsultingAgent:
             combined_text = f"{incoming_message} {reply_text}".lower()
             booking_directives = [
                 "записываю вас", "подтверждаю запись", "запись успешно оформлена",
-                "запись подтверждена", "записал вас на консультацию", "ждем вас в офисе"
+                "запись подтверждена", "записал вас на консультацию", "ждем вас в офисе",
+                "записали вас на консультацию"
             ]
-            is_booking_flow = any(d in reply_text.lower() for d in booking_directives) or (bool(phone_match) and "консультац" in combined_text)
+            is_booking_flow = any(d in reply_text.lower() for d in booking_directives) or (
+                bool(customer.phone) and any(w in incoming_message.lower() for w in ["запишите", "завтра", "пятниц", "в 14", "в 16", "в 11", "в 15", "подходит", "онлайн", "в офис", "зум", "zoom", "meet", "байтик"])
+            )
 
             if is_booking_flow:
                 if lead_deal and lead_deal.stage in ["NEW_LEAD", "AI_QUALIFIED"]:

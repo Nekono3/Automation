@@ -1,202 +1,228 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Inbox, 
-  Users, 
-  Calendar, 
-  BarChart3, 
-  Trophy,
+import { useEffect, useRef, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Inbox,
+  Users,
+  CalendarDays,
+  LayoutDashboard,
+  GraduationCap,
   Zap,
-  Settings, 
-  LogOut, 
-  Bell, 
-  ShieldCheck, 
-  ChevronRight
-} from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
+  LogOut,
+  ChevronRight,
+  Menu,
+  X,
+  ChevronsUpDown,
+} from "lucide-react";
+import Link from "next/link";
+import { Avatar, Brand } from "@/components/WorkspaceUI";
+import { InstagramIcon, WhatsAppIcon } from "@/components/ChannelIcons";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+const navigation = [
+  { href: "/dashboard", icon: LayoutDashboard, label: "Обзор" },
+  { href: "/dashboard/conversations", icon: Inbox, label: "Входящие" },
+  { href: "/dashboard/customers", icon: Users, label: "Студенты и контакты" },
+  { href: "/dashboard/pipeline", icon: GraduationCap, label: "Поступления" },
+  { href: "/dashboard/bookings", icon: CalendarDays, label: "Консультации" },
+  { href: "/dashboard/automations", icon: Zap, label: "Автоматизации" },
+];
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { isAuthenticated, loading, logout, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenu, setUserMenu] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const current = navigation.find((item) => item.href === pathname);
+  const operator = user?.email?.split("@")[0] || "Оператор";
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push('/');
-    }
+    if (!loading && !isAuthenticated) router.replace("/");
   }, [loading, isAuthenticated, router]);
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        setUserMenu(false);
+      }
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, []);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const trigger = menuButton.current;
+    closeButton.current?.focus();
+    return () => trigger?.focus();
+  }, [mobileOpen]);
 
-  if (loading || !isAuthenticated) {
+  if (loading || !isAuthenticated)
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC] text-slate-600 font-sans">
-        <div className="flex items-center gap-3 bg-white border border-slate-200 px-6 py-4 rounded-2xl shadow-sm">
-          <div className="w-5 h-5 border-2 border-[#283876] border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-semibold text-slate-700 tracking-wide">Подключение к TC CRM...</span>
-        </div>
+      <div className="workspace-loading" role="status">
+        <Brand />
+        <span className="loading-spinner" />
+        <p>Открываем рабочее пространство…</p>
       </div>
     );
-  }
-
-  const navItems = [
-    { href: '/dashboard/conversations', icon: Inbox, label: 'Диалоги (Inbox)' },
-    { href: '/dashboard/pipeline', icon: Trophy, label: 'Воронки (Kanban)' },
-    { href: '/dashboard/automations', icon: Zap, label: 'Автоматизации (Триггеры)' },
-    { href: '/dashboard', icon: BarChart3, label: 'Аналитика и сводка' },
-    { href: '/dashboard/customers', icon: Users, label: 'Студенты и контакты' },
-    { href: '/dashboard/bookings', icon: Calendar, label: 'Консультации' },
-  ];
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] text-slate-900 overflow-hidden font-sans antialiased selection:bg-[#283876]/10">
-      {/* Clean Light Icon Rail (64px) */}
-      <aside className="w-16 bg-white border-r border-slate-200/90 flex flex-col items-center justify-between py-3 z-30 shrink-0 select-none shadow-[1px_0_3px_rgba(0,0,0,0.02)]">
-        {/* Top: Brand TC Logo & Nav */}
-        <div className="flex flex-col items-center gap-3.5 w-full">
-          {/* Official TC Monogram Logo (Circular Pill) */}
-          <Link 
-            href="/dashboard/conversations"
-            onClick={(e) => {
-              e.preventDefault();
-              router.push('/dashboard/conversations');
-            }}
-            className="w-11 h-11 rounded-full bg-white border border-slate-200 hover:border-[#283876]/40 flex items-center justify-center p-1 hover:shadow-md transition-all duration-150 cursor-pointer group shadow-xs"
-            title="Consulteam CRM"
+    <div className="workspace-shell">
+      <a href="#workspace-content" className="skip-link">
+        Перейти к содержимому
+      </a>
+      {mobileOpen && (
+        <button
+          className="sidebar-scrim"
+          aria-label="Закрыть навигацию"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+      <aside
+        id="workspace-navigation"
+        className={`workspace-sidebar ${mobileOpen ? "is-open" : ""}`}
+        aria-label="Рабочее пространство"
+        role={mobileOpen ? "dialog" : undefined}
+        aria-modal={mobileOpen ? true : undefined}
+      >
+        <div className="sidebar-brand">
+          <Link
+            href="/dashboard"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Consulteam — обзор"
           >
-            <img 
-              src="/consulteam-round-badge.png" 
-              alt="Consulteam Logo" 
-              className="w-8 h-8 rounded-full object-contain transition-transform group-hover:scale-105" 
-            />
+            <Brand />
           </Link>
-
-          <div className="w-8 h-[1px] bg-slate-200 my-0.5" />
-
-          {/* Navigation Icons */}
-          <nav className="flex flex-col items-center gap-1.5 w-full px-2">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    router.push(item.href);
-                  }}
-                  className={`w-11 h-11 rounded-2xl flex items-center justify-center relative transition-all duration-150 group cursor-pointer ${
-                    isActive
-                      ? 'bg-[#283876] text-white shadow-sm shadow-[#283876]/20 rounded-full'
-                      : 'text-slate-500 hover:text-[#283876] hover:bg-slate-100/80 rounded-2xl'
-                  }`}
-                  title={item.label}
-                >
-                  <Icon className="w-5 h-5 transition-transform group-hover:scale-105" />
-                  
-                  {/* Tooltip on hover */}
-                  <div className="absolute left-14 px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-                    {item.label}
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
+          <button
+            className="mobile-close icon-button"
+            ref={closeButton}
+            aria-label="Закрыть навигацию"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X size={20} />
+          </button>
         </div>
-
-        {/* Bottom Utilities & User Profile */}
-        <div className="flex flex-col items-center gap-2 w-full px-2 relative">
-          <button
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-[#283876] hover:bg-slate-100 transition-colors relative group cursor-pointer"
-            title="Уведомления"
-          >
-            <Bell className="w-4 h-4" />
-            <span className="w-2 h-2 rounded-full bg-blue-500 absolute top-2.5 right-2.5" />
-            <div className="absolute left-14 px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-              Уведомления
-            </div>
-          </button>
-
-          <button
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-[#283876] hover:bg-slate-100 transition-colors relative group cursor-pointer"
-            title="Настройки CRM"
-            onClick={() => router.push('/dashboard')}
-          >
-            <Settings className="w-4 h-4" />
-            <div className="absolute left-14 px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-              Настройки CRM
-            </div>
-          </button>
-
-          <div className="w-8 h-[1px] bg-slate-200 my-0.5" />
-
-          {/* User Profile */}
-          <div className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-10 h-10 rounded-full bg-slate-100 border border-slate-300 hover:border-[#283876] flex items-center justify-center text-[#283876] text-xs font-bold transition-all cursor-pointer relative shadow-sm"
-              title="Профиль оператора"
+        <div className="workspace-switcher">
+          <span className="workspace-switcher-icon">
+            <GraduationCap size={19} />
+          </span>
+          <div>
+            <strong>Образование за рубежом</strong>
+            <span>Рабочее пространство</span>
+          </div>
+        </div>
+        <p className="nav-label">УПРАВЛЕНИЕ</p>
+        <nav className="workspace-nav" aria-label="Основная навигация">
+          {navigation.map(({ href, icon: Icon, label }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileOpen(false)}
+              className={pathname === href ? "active" : ""}
+              aria-current={pathname === href ? "page" : undefined}
             >
-              <span>OP</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white absolute bottom-0 right-0" />
+              <Icon size={19} aria-hidden="true" />
+              <span>{label}</span>
+              {pathname === href && <span className="nav-active-dot" />}
+            </Link>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="sidebar-mission">
+            <span className="mission-icon">
+              <GraduationCap size={23} />
+            </span>
+            <strong>
+              От первого сообщения
+              <br />
+              до письма о зачислении.
+            </strong>
+            <p>Весь путь студента — в одном месте.</p>
+            <Link
+              href="/dashboard/pipeline"
+              onClick={() => setMobileOpen(false)}
+            >
+              Открыть поступления <ChevronRight size={15} />
+            </Link>
+          </div>
+          <div className="sidebar-profile">
+            <Avatar name={operator} />
+            <div>
+              <strong>{operator}</strong>
+              <span>
+                {user?.is_superuser ? "Администратор" : "Консультант"}
+              </span>
+            </div>
+            <button
+              className="icon-button"
+              onClick={logout}
+              aria-label="Выйти из аккаунта"
+              title="Выйти из аккаунта"
+            >
+              <LogOut size={18} />
             </button>
-
-            {showUserMenu && (
-              <div 
-                className="absolute left-14 bottom-0 w-60 rounded-xl bg-white border border-slate-200 shadow-xl p-2 z-50 text-xs animate-in fade-in duration-100"
-                onMouseLeave={() => setShowUserMenu(false)}
-              >
-                <div className="p-2.5 border-b border-slate-100 mb-1">
-                  <div className="font-semibold text-slate-900 flex items-center gap-1.5">
-                    <span>Оператор CRM</span>
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#283876]" />
-                  </div>
-                  <div className="text-xs text-emerald-600 flex items-center gap-1.5 mt-0.5 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>В сети • Instagram Direct</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => router.push('/dashboard/customers')}
-                  className="w-full text-left px-2.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center justify-between cursor-pointer"
-                >
-                  <span>База клиентов</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-
-                <button
-                  onClick={() => router.push('/dashboard/bookings')}
-                  className="w-full text-left px-2.5 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition flex items-center justify-between cursor-pointer"
-                >
-                  <span>Записи на консультации</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-
-                <div className="h-[1px] bg-slate-100 my-1" />
-
-                <button
-                  onClick={() => logout()}
-                  className="w-full text-left px-2.5 py-2 rounded-lg text-rose-600 hover:bg-rose-50 transition flex items-center gap-2 cursor-pointer font-medium"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Завершить смену</span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </aside>
-
-      {/* Main Content Workspace */}
-      <main className="flex-1 overflow-hidden flex flex-col bg-[#F8FAFC]">
-        {children}
-      </main>
+      <div className="workspace-body" inert={mobileOpen}>
+        <header className="workspace-topbar">
+          <div className="topbar-breadcrumb">
+            <button
+              className="mobile-menu icon-button"
+              ref={menuButton}
+              aria-label="Открыть навигацию"
+              aria-expanded={mobileOpen}
+              aria-controls="workspace-navigation"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu size={21} />
+            </button>
+            <span className="breadcrumb-root">Рабочее пространство</span>
+            <ChevronRight size={14} aria-hidden="true" />
+            <strong>{current?.label || "Consulteam"}</strong>
+          </div>
+          <div className="topbar-right">
+            <div className="topbar-channels" aria-label="Каналы общения">
+              <InstagramIcon className="w-4 h-4" />
+              <WhatsAppIcon className="w-4 h-4" />
+              <span>Единый inbox</span>
+            </div>
+            <div className="topbar-profile">
+              <button
+                className="profile-trigger"
+                onClick={() => setUserMenu(!userMenu)}
+                aria-expanded={userMenu}
+                aria-label="Меню аккаунта"
+              >
+                <Avatar name={operator} />
+                <ChevronsUpDown size={14} />
+              </button>
+              {userMenu && (
+                <div className="profile-menu">
+                  <p>{user?.email}</p>
+                  <button onClick={logout}>
+                    <LogOut size={16} /> Выйти из аккаунта
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+        <main
+          id="workspace-content"
+          className="workspace-content"
+          tabIndex={-1}
+        >
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

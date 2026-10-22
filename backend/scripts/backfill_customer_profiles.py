@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from sqlalchemy import select
-from app.database import async_session_factory
+from app.database import AsyncSessionLocal
 from app.models.customer import Customer
 from app.integrations.instagram.client import InstagramClient
 from app.services.deal_service import DealService
@@ -11,7 +11,7 @@ logger = logging.getLogger("backfill")
 
 
 async def backfill():
-    async with async_session_factory() as db:
+    async with AsyncSessionLocal() as db:
         res = await db.execute(select(Customer))
         customers = res.scalars().all()
         logger.info("Found %d customers in database.", len(customers))

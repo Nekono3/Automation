@@ -285,6 +285,99 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // Seller KPI System
+  async getSellers(): Promise<import('./types').Seller[]> {
+    return this.request<import('./types').Seller[]>('/kpi/sellers');
+  }
+
+  async createSeller(data: { name: string; role?: string; phone?: string }): Promise<import('./types').Seller> {
+    return this.request<import('./types').Seller>('/kpi/sellers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSeller(id: number): Promise<void> {
+    return this.request<void>(`/kpi/sellers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async addKPIScore(data: import('./types').KPIScoreInput): Promise<import('./types').SellerKPIRecord> {
+    return this.request<import('./types').SellerKPIRecord>('/kpi/scores', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteKPIRecord(recordId: number): Promise<void> {
+    return this.request<void>(`/kpi/records/${recordId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async syncKPI(force = true): Promise<{ status: string; seeded_records: number }> {
+    return this.request<{ status: string; seeded_records: number }>(`/kpi/sync?force=${force}`, {
+      method: 'POST',
+    });
+  }
+
+  // Enrolled Students Tracker (Process & Finance)
+  async getEnrolledStudents(params?: {
+    search?: string;
+    country?: string;
+    manager?: string;
+    stage?: string;
+    risk?: string;
+    is_completed?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<import('./types').EnrolledStudent[]> {
+    const qs = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          qs.append(k, String(v));
+        }
+      });
+    }
+    return this.request<import('./types').EnrolledStudent[]>(`/enrolled-students?${qs.toString()}`);
+  }
+
+  async getEnrolledStudentsStats(): Promise<import('./types').EnrolledStudentsStats> {
+    return this.request<import('./types').EnrolledStudentsStats>('/enrolled-students/stats');
+  }
+
+  async getEnrolledStudent(id: number): Promise<import('./types').EnrolledStudent> {
+    return this.request<import('./types').EnrolledStudent>(`/enrolled-students/${id}`);
+  }
+
+  async createEnrolledStudent(data: Partial<import('./types').EnrolledStudent>): Promise<import('./types').EnrolledStudent> {
+    return this.request<import('./types').EnrolledStudent>('/enrolled-students', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateEnrolledStudent(id: number, data: Partial<import('./types').EnrolledStudent>): Promise<import('./types').EnrolledStudent> {
+    return this.request<import('./types').EnrolledStudent>(`/enrolled-students/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteEnrolledStudent(id: number): Promise<void> {
+    return this.request<void>(`/enrolled-students/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async syncEnrolledStudents(force = true): Promise<{ status: string; seeded_students: number }> {
+    return this.request<{ status: string; seeded_students: number }>(`/enrolled-students/sync?force=${force}`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const api = new ApiClient();

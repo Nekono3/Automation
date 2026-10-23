@@ -193,3 +193,76 @@ export interface ProgramsStats {
   degrees_breakdown: Record<string, number>;
   universities: UniversitySummary[];
 }
+
+export interface SellerKPIRecord {
+  id: number;
+  seller_id: number;
+  period: string;
+  punctuality: number;
+  calls_meetings: number;
+  sales: number;
+  team_meetings: number;
+  innovation: number;
+  total_score: number;
+  evaluator?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Seller {
+  id: number;
+  name: string;
+  role: string;
+  phone?: string | null;
+  is_active: boolean;
+  records: SellerKPIRecord[];
+  total_earned_score: number;
+  average_score: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KPIScoreInput {
+  seller_id: number;
+  period: string;
+  category: string;
+  score: number;
+  evaluator?: string;
+  notes?: string;
+}
+
+export interface EnrolledStudent {
+  id: number;
+  full_name: string;
+  country: string;
+  process_stage: string;
+  manager: string;
+  next_action: string;
+  risk: string;
+  comment?: string | null;
+  is_completed: boolean;
+  status_raw?: string | null;
+  contract_amount: string;
+  paid_amount: string;
+  remaining_amount: string;
+  seller_commission_paid: boolean;
+  mentor_commission_paid: boolean;
+  next_payment_condition: string;
+  last_payment_date: string;
+  finance_comment?: string | null;
+  full_payment_received: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EnrolledStudentsStats {
+  total_students: number;
+  completed_count: number;
+  in_process_count: number;
+  countries_breakdown: Record<string, number>;
+  stages_breakdown: Record<string, number>;
+  managers_breakdown: Record<string, number>;
+  risks_breakdown: Record<string, number>;
+}
+

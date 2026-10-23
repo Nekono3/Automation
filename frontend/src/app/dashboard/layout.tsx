@@ -11,6 +11,8 @@ import {
   GraduationCap,
   Zap,
   School,
+  TrendingUp,
+  ClipboardCheck,
   LogOut,
   ChevronRight,
   Menu,
@@ -24,9 +26,11 @@ import { InstagramIcon, WhatsAppIcon } from "@/components/ChannelIcons";
 const navigation = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Обзор" },
   { href: "/dashboard/conversations", icon: Inbox, label: "Входящие" },
-  { href: "/dashboard/customers", icon: Users, label: "Студенты и контакты" },
+  { href: "/dashboard/customers", icon: Users, label: "Лиды и контакты" },
+  { href: "/dashboard/students", icon: ClipboardCheck, label: "Студенты" },
   { href: "/dashboard/pipeline", icon: GraduationCap, label: "Поступления" },
   { href: "/dashboard/programs", icon: School, label: "Университеты" },
+  { href: "/dashboard/kpi", icon: TrendingUp, label: "KPI Продавцов" },
   { href: "/dashboard/bookings", icon: CalendarDays, label: "Консультации" },
   { href: "/dashboard/automations", icon: Zap, label: "Автоматизации" },
 ];

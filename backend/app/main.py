@@ -52,6 +52,16 @@ async def lifespan(app: FastAPI):
             if seeded_programs:
                 logger.info("Consulteam university programs loaded: %d", seeded_programs)
 
+            from app.services.seller_kpi_service import SellerKPIService
+            seeded_kpi = await SellerKPIService.seed_default_kpi(session)
+            if seeded_kpi:
+                logger.info("Consulteam seller KPI loaded: %d records", seeded_kpi)
+
+            from app.services.enrolled_student_service import EnrolledStudentService
+            seeded_students = await EnrolledStudentService.seed_default_students(session)
+            if seeded_students:
+                logger.info("Consulteam enrolled students loaded: %d", seeded_students)
+
     except Exception as exc:
         logger.error("Failed to initialize database on startup: %s", exc)
 
@@ -91,6 +101,8 @@ from app.api.routes.automations import router as automations_router
 from app.api.routes.deals import router as deals_router
 from app.api.routes.students import router as students_router
 from app.api.routes.university_programs import router as programs_router
+from app.api.routes.seller_kpi import router as kpi_router
+from app.api.routes.enrolled_students import router as enrolled_students_router
 
 app.include_router(conversations_router)
 app.include_router(customers_router)
@@ -101,6 +113,8 @@ app.include_router(automations_router)
 app.include_router(deals_router)
 app.include_router(students_router)
 app.include_router(programs_router)
+app.include_router(kpi_router)
+app.include_router(enrolled_students_router)
 
 # Mount Static Files (PDF guides & uploaded media)
 import os

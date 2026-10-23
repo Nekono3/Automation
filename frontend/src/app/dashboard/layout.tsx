@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   Zap,
+  School,
   LogOut,
   ChevronRight,
   Menu,
@@ -25,6 +26,7 @@ const navigation = [
   { href: "/dashboard/conversations", icon: Inbox, label: "Входящие" },
   { href: "/dashboard/customers", icon: Users, label: "Студенты и контакты" },
   { href: "/dashboard/pipeline", icon: GraduationCap, label: "Поступления" },
+  { href: "/dashboard/programs", icon: School, label: "Университеты" },
   { href: "/dashboard/bookings", icon: CalendarDays, label: "Консультации" },
   { href: "/dashboard/automations", icon: Zap, label: "Автоматизации" },
 ];

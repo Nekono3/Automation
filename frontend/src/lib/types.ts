@@ -157,3 +157,39 @@ export interface DashboardStats {
   total_customers: number;
   unread_messages: number;
 }
+
+export interface UniversityProgram {
+  id: number;
+  university: string;
+  faculty: string;
+  program_name: string;
+  program_name_ru: string;
+  degree_level: string;
+  tuition_fee: string;
+  tuition_fee_usd?: number | null;
+  currency: string;
+  duration: string;
+  language: string;
+  city: string;
+  country: string;
+  is_active: boolean;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UniversitySummary {
+  name: string;
+  city: string;
+  country: string;
+  program_count: number;
+  degrees: string[];
+}
+
+export interface ProgramsStats {
+  total_programs: number;
+  total_universities: number;
+  total_faculties: number;
+  degrees_breakdown: Record<string, number>;
+  universities: UniversitySummary[];
+}

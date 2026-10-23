@@ -47,6 +47,11 @@ async def lifespan(app: FastAPI):
             if seeded_triggers:
                 logger.info("Consulteam automation triggers active: %d", len(seeded_triggers))
 
+            from app.services.university_program_service import UniversityProgramService
+            seeded_programs = await UniversityProgramService.seed_default_programs(session)
+            if seeded_programs:
+                logger.info("Consulteam university programs loaded: %d", seeded_programs)
+
     except Exception as exc:
         logger.error("Failed to initialize database on startup: %s", exc)
 
@@ -85,6 +90,7 @@ from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.automations import router as automations_router
 from app.api.routes.deals import router as deals_router
 from app.api.routes.students import router as students_router
+from app.api.routes.university_programs import router as programs_router
 
 app.include_router(conversations_router)
 app.include_router(customers_router)
@@ -94,6 +100,7 @@ app.include_router(dashboard_router)
 app.include_router(automations_router)
 app.include_router(deals_router)
 app.include_router(students_router)
+app.include_router(programs_router)
 
 # Mount Static Files (PDF guides & uploaded media)
 import os

@@ -218,6 +218,74 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // University Programs Catalog
+  async getPrograms(params?: {
+    search?: string;
+    university?: string;
+    faculty?: string;
+    degree_level?: string;
+    language?: string;
+    sort_by?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<import('./types').UniversityProgram[]> {
+    const qs = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          qs.append(k, String(v));
+        }
+      });
+    }
+    return this.request<import('./types').UniversityProgram[]>(`/programs?${qs.toString()}`);
+  }
+
+  async getProgram(id: number): Promise<import('./types').UniversityProgram> {
+    return this.request<import('./types').UniversityProgram>(`/programs/${id}`);
+  }
+
+  async createProgram(data: Partial<import('./types').UniversityProgram>): Promise<import('./types').UniversityProgram> {
+    return this.request<import('./types').UniversityProgram>('/programs', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateProgram(id: number, data: Partial<import('./types').UniversityProgram>): Promise<import('./types').UniversityProgram> {
+    return this.request<import('./types').UniversityProgram>(`/programs/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteProgram(id: number): Promise<void> {
+    return this.request<void>(`/programs/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async renameUniversity(old_name: string, new_name: string): Promise<{ status: string; affected_programs: number; new_name: string }> {
+    return this.request<{ status: string; affected_programs: number; new_name: string }>('/programs/rename-university', {
+      method: 'POST',
+      body: JSON.stringify({ old_name, new_name }),
+    });
+  }
+
+  async getProgramUniversities(): Promise<import('./types').UniversitySummary[]> {
+    return this.request<import('./types').UniversitySummary[]>('/programs/universities');
+  }
+
+  async getProgramsStats(): Promise<import('./types').ProgramsStats> {
+    return this.request<import('./types').ProgramsStats>('/programs/stats');
+  }
+
+  async syncPrograms(force = true): Promise<{ status: string; seeded_programs: number }> {
+    return this.request<{ status: string; seeded_programs: number }>(`/programs/sync?force=${force}`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const api = new ApiClient();
+

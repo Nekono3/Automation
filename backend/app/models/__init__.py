@@ -9,6 +9,7 @@ from app.models.service import Service
 from app.models.booking import Booking
 from app.models.user import User
 from app.models.audit import WebhookEvent, AuditLog
+from app.models.university_program import UniversityProgram
 
 __all__ = [
     "TimestampMixin",
@@ -24,4 +25,5 @@ __all__ = [
     "User",
     "WebhookEvent",
     "AuditLog",
+    "UniversityProgram",
 ]

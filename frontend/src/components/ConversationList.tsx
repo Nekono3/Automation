@@ -123,8 +123,26 @@ export function ConversationList({
                         "Консультант"
                       )}
                     </span>
+                    {conversation.channel === "whatsapp" && conversation.whatsapp_account && (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          padding: "1px 6px",
+                          borderRadius: "6px",
+                          background: "rgba(16, 185, 129, 0.15)",
+                          color: "#34D399",
+                          border: "1px solid rgba(16, 185, 129, 0.3)",
+                        }}
+                      >
+                        {conversation.whatsapp_account.name}
+                      </span>
+                    )}
                     <time dateTime={conversation.last_message_at}>{time}</time>
                   </span>
+
                 </span>
               </button>
             );

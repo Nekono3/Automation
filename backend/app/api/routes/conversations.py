@@ -27,21 +27,28 @@ class OperatorMessage(BaseModel):
 async def list_conversations(
     status: Optional[str] = None,
     mode: Optional[str] = None,
+    whatsapp_account_id: Optional[int] = None,
     skip: int = 0,
-    limit: int = 50,
+    limit: int = 100,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Lists conversations with customer profiles and recent messages."""
+    """Lists conversations with customer profiles, recent messages, and WhatsApp account info."""
     query = (
         select(Conversation)
-        .options(selectinload(Conversation.customer), selectinload(Conversation.messages))
+        .options(
+            selectinload(Conversation.customer),
+            selectinload(Conversation.messages),
+            selectinload(Conversation.whatsapp_account),
+        )
         .order_by(Conversation.last_message_at.desc().nullslast(), Conversation.created_at.desc())
     )
     if status:
         query = query.where(Conversation.status == status)
     if mode:
         query = query.where(Conversation.mode == mode)
+    if whatsapp_account_id is not None:
+        query = query.where(Conversation.whatsapp_account_id == whatsapp_account_id)
 
     query = query.offset(skip).limit(limit)
     res = await db.execute(query)
@@ -112,12 +119,14 @@ async def send_operator_message(
         from app.integrations.whatsapp.client import WhatsAppClient
         wa_client = WhatsAppClient()
         target_phone = conversation.customer.whatsapp_id or conversation.customer.phone
-        await wa_client.send_text_message(target_phone, payload.text)
+        account_id = conversation.whatsapp_account.account_id if conversation.whatsapp_account else None
+        await wa_client.send_text_message(target_phone, payload.text, account_id=account_id)
     elif conversation.customer.instagram_id:
         client = InstagramClient()
         await client.send_text_message(conversation.customer.instagram_id, payload.text)
     
     return msg
+
 
 
 @router.patch("/{conversation_id}/mode", response_model=ConversationRead)

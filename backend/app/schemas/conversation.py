@@ -29,13 +29,26 @@ class ConversationModeUpdate(BaseModel):
     reason: Optional[str] = None
 
 
+class WhatsAppAccountSimple(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    account_id: str
+    name: str
+    role: str
+    phone: Optional[str] = None
+    color: str = "emerald"
+
+
 class ConversationRead(ConversationBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    whatsapp_account_id: Optional[int] = None
+    whatsapp_account: Optional[WhatsAppAccountSimple] = None
     unread_count: int
     last_message_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     customer: Optional[CustomerRead] = None
     messages: List[MessageRead] = []
+

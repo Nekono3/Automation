@@ -30,6 +30,12 @@ async def lifespan(app: FastAPI):
         # Create tables on startup in development
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.execute(
+                text(
+                    "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS whatsapp_account_id INTEGER "
+                    "REFERENCES whatsapp_accounts(id) ON DELETE SET NULL;"
+                )
+            )
         logger.info("Database tables initialized successfully.")
 
         # Seed default consulting services & default admin
@@ -61,6 +67,12 @@ async def lifespan(app: FastAPI):
             seeded_students = await EnrolledStudentService.seed_default_students(session)
             if seeded_students:
                 logger.info("Consulteam enrolled students loaded: %d", seeded_students)
+
+            from app.services.whatsapp_service import WhatsAppAccountService
+            seeded_wa = await WhatsAppAccountService.seed_default_accounts(session)
+            if seeded_wa:
+                logger.info("Consulteam WhatsApp accounts initialized: %d", seeded_wa)
+
 
     except Exception as exc:
         logger.error("Failed to initialize database on startup: %s", exc)
@@ -103,6 +115,7 @@ from app.api.routes.students import router as students_router
 from app.api.routes.university_programs import router as programs_router
 from app.api.routes.seller_kpi import router as kpi_router
 from app.api.routes.enrolled_students import router as enrolled_students_router
+from app.api.routes.whatsapp import router as whatsapp_router
 
 app.include_router(conversations_router)
 app.include_router(customers_router)
@@ -115,6 +128,8 @@ app.include_router(students_router)
 app.include_router(programs_router)
 app.include_router(kpi_router)
 app.include_router(enrolled_students_router)
+app.include_router(whatsapp_router, prefix="/api")
+
 
 # Mount Static Files (PDF guides & uploaded media)
 import os

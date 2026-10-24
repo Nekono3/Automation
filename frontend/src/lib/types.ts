@@ -105,10 +105,28 @@ export interface Message {
   created_at: string;
 }
 
+export interface WhatsAppAccount {
+  id: number;
+  account_id: string;
+  name: string;
+  role: string;
+  phone?: string;
+  is_active: boolean;
+  is_main: boolean;
+  color: string;
+  created_at: string;
+  updated_at: string;
+  live_status?: 'connected' | 'qr_ready' | 'disconnected' | 'initializing';
+  qr_image?: string;
+  has_qr?: boolean;
+}
+
 export interface Conversation {
   id: string;
   customer_id: string;
   channel: string;
+  whatsapp_account_id?: number;
+  whatsapp_account?: WhatsAppAccount;
   mode: 'ai' | 'human' | 'paused';
   status: 'open' | 'closed' | 'archived';
   priority: number;
@@ -119,6 +137,7 @@ export interface Conversation {
   customer?: Customer;
   messages?: Message[];
 }
+
 
 export interface Service {
   id: string;

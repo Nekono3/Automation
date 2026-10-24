@@ -9,6 +9,7 @@ from app.models.base import TimestampMixin
 if TYPE_CHECKING:
     from app.models.customer import Customer
     from app.models.message import Message
+    from app.models.whatsapp_account import WhatsAppAccount
 
 
 class Conversation(Base, TimestampMixin):
@@ -17,6 +18,9 @@ class Conversation(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id", ondelete="CASCADE"), index=True)
     channel: Mapped[str] = mapped_column(String(32), default="instagram", index=True)
+    whatsapp_account_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("whatsapp_accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     
     # Mode: "ai", "human", "paused"
     mode: Mapped[str] = mapped_column(String(32), default="ai", index=True)
@@ -33,7 +37,9 @@ class Conversation(Base, TimestampMixin):
     messages: Mapped[List["Message"]] = relationship(
         "Message", back_populates="conversation", cascade="all, delete-orphan", order_by="Message.created_at"
     )
+    whatsapp_account: Mapped[Optional["WhatsAppAccount"]] = relationship("WhatsAppAccount", lazy="joined")
 
     __table_args__ = (
         Index("idx_conv_cust_channel", "customer_id", "channel"),
     )
+

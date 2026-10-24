@@ -15,6 +15,7 @@ class ConversationService:
         db: AsyncSession,
         customer_id: int,
         channel: str = "instagram",
+        whatsapp_account_id: Optional[int] = None,
     ) -> tuple[Conversation, bool]:
         """Gets active conversation for customer on channel, or creates a new one."""
         query = (
@@ -34,6 +35,7 @@ class ConversationService:
             conversation = Conversation(
                 customer_id=customer_id,
                 channel=channel,
+                whatsapp_account_id=whatsapp_account_id,
                 mode="ai",
                 status="open",
             )
@@ -41,8 +43,13 @@ class ConversationService:
             await db.commit()
             await db.refresh(conversation)
             created = True
+        elif whatsapp_account_id and conversation.whatsapp_account_id != whatsapp_account_id:
+            conversation.whatsapp_account_id = whatsapp_account_id
+            await db.commit()
+            await db.refresh(conversation)
 
         return conversation, created
+
 
     @staticmethod
     async def get_by_id(

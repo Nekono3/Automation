@@ -500,6 +500,7 @@ async def receive_whatsapp_event(
 # =========================================================================
 
 class WhatsAppBridgePayload(BaseModel):
+    account_id: Optional[str] = "account_1"
     sender_phone: str
     sender_name: Optional[str] = None
     sender_jid: Optional[str] = None
@@ -522,7 +523,8 @@ async def receive_whatsapp_bridge_event(
     if not display_phone.startswith("+") and display_phone.isdigit():
         display_phone = f"+{display_phone}"
 
-    logger.info("Received WhatsApp bridge message from %s (jid: %s): %s", display_phone, reply_target, payload.text[:40])
+    account_key = payload.account_id or "account_1"
+    logger.info("Received WhatsApp bridge message [%s] from %s (jid: %s): %s", account_key, display_phone, reply_target, payload.text[:40])
 
     # 1. Deduplication via message_id check
     if payload.message_id:
@@ -537,12 +539,25 @@ async def receive_whatsapp_bridge_event(
             WebhookEvent(
                 event_id=payload.message_id,
                 source="whatsapp_bridge",
-                payload={"phone": display_phone, "jid": reply_target, "text": payload.text},
+                payload={"account_id": account_key, "phone": display_phone, "jid": reply_target, "text": payload.text},
                 status="processed",
             )
         )
 
-    # 2. Get or create customer by phone number
+    # 2. Find associated WhatsApp Account
+    from app.models.whatsapp_account import WhatsAppAccount
+    acc_res = await db.execute(
+        select(WhatsAppAccount).where(WhatsAppAccount.account_id == account_key)
+    )
+    wa_account = acc_res.scalar_one_or_none()
+    if not wa_account:
+        acc_res = await db.execute(
+            select(WhatsAppAccount).order_by(WhatsAppAccount.is_main.desc(), WhatsAppAccount.id.asc())
+        )
+        wa_account = acc_res.scalars().first()
+    wa_account_id = wa_account.id if wa_account else None
+
+    # 3. Get or create customer by phone number
     customer, _ = await CustomerService.get_or_create_by_whatsapp_id(
         db=db,
         whatsapp_id=reply_target,
@@ -550,12 +565,14 @@ async def receive_whatsapp_bridge_event(
         name=payload.sender_name or f"WhatsApp {display_phone[-4:]}",
     )
 
-    # 3. Get or create conversation with channel='whatsapp'
+    # 4. Get or create conversation with channel='whatsapp' and assigned WhatsApp account
     conv, _ = await ConversationService.get_or_create_conversation(
         db=db,
         customer_id=customer.id,
         channel="whatsapp",
+        whatsapp_account_id=wa_account_id,
     )
+
 
     # 4. Record inbound message
     msg, is_new = await ConversationService.record_message(

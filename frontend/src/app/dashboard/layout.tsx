@@ -33,7 +33,9 @@ const navigation = [
   { href: "/dashboard/kpi", icon: TrendingUp, label: "KPI Продавцов" },
   { href: "/dashboard/bookings", icon: CalendarDays, label: "Консультации" },
   { href: "/dashboard/automations", icon: Zap, label: "Автоматизации" },
+  { href: "/dashboard/whatsapp", icon: WhatsAppIcon, label: "WhatsApp" },
 ];
+
 
 export default function DashboardLayout({
   children,

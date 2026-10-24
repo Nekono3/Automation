@@ -136,12 +136,21 @@ export function ChatPanel({
               <InstagramIcon className="w-3 h-3" />
             )}
             {channel}
+            {isWA && conversation.whatsapp_account && (
+              <>
+                <span className="chat-heading-divider">•</span>
+                <span style={{ color: "#34D399", fontWeight: 600 }}>
+                  Менеджер: {conversation.whatsapp_account.name}
+                </span>
+              </>
+            )}
             <span className="chat-heading-divider">/</span>
             {conversation.status === "open"
               ? "Открытый диалог"
               : "Диалог закрыт"}
           </span>
         </div>
+
         <button
           className="icon-button"
           onClick={onOpenProfile}

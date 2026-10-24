@@ -1,4 +1,5 @@
-import { LoginResponse, User, Conversation, Message, Customer, Booking, Service, DashboardStats } from './types';
+import { LoginResponse, User, Conversation, Message, Customer, Booking, Service, DashboardStats, WhatsAppAccount } from './types';
+
 
 function getApiUrl(): string {
   if (typeof window !== 'undefined') {
@@ -378,7 +379,45 @@ class ApiClient {
       method: 'POST',
     });
   }
+
+  // --- WhatsApp Accounts ---
+  async getWhatsAppAccounts(): Promise<WhatsAppAccount[]> {
+    return this.request<WhatsAppAccount[]>('/whatsapp/accounts');
+  }
+
+  async createWhatsAppAccount(data: { name: string; role?: string; is_main?: boolean; color?: string; account_id?: string }): Promise<WhatsAppAccount> {
+    return this.request<WhatsAppAccount>('/whatsapp/accounts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateWhatsAppAccount(accountId: string, data: Partial<WhatsAppAccount>): Promise<WhatsAppAccount> {
+    return this.request<WhatsAppAccount>(`/whatsapp/accounts/${accountId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteWhatsAppAccount(accountId: string): Promise<void> {
+    return this.request<void>(`/whatsapp/accounts/${accountId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async disconnectWhatsAppSession(accountId: string): Promise<void> {
+    return this.request<void>(`/whatsapp/accounts/${accountId}/disconnect`, {
+      method: 'POST',
+    });
+  }
+
+  async restartWhatsAppSession(accountId: string): Promise<void> {
+    return this.request<void>(`/whatsapp/accounts/${accountId}/restart`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const api = new ApiClient();
+
 

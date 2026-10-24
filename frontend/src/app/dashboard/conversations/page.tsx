@@ -7,17 +7,19 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { CustomerInspector } from "@/components/CustomerInspector";
 import { EmptyState, PageHeader } from "@/components/WorkspaceUI";
 import { api } from "@/lib/api";
-import { Conversation, Message, Booking } from "@/lib/types";
+import { Conversation, Message, Booking, WhatsAppAccount } from "@/lib/types";
 import { AlertCircle, Bot, Inbox, RefreshCw } from "lucide-react";
 
 function ConversationsContent() {
   const searchParams = useSearchParams();
   const targetCustomerId = searchParams.get("customer_id");
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [waAccounts, setWaAccounts] = useState<WhatsAppAccount[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [view, setView] = useState("all");
   const [channel, setChannel] = useState("all");
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +33,12 @@ function ConversationsContent() {
 
   const sync = useCallback(async () => {
     try {
-      const data = await api.getConversations();
+      const [data, accounts] = await Promise.all([
+        api.getConversations(),
+        api.getWhatsAppAccounts().catch(() => []),
+      ]);
       setConversations(data);
+      if (accounts && accounts.length) setWaAccounts(accounts);
       setError("");
       if (targetCustomerId && targetHandled.current !== targetCustomerId) {
         const match = data.find(
@@ -113,7 +119,14 @@ function ConversationsContent() {
     (item) => String(item.id) === String(selectedId),
   );
   const filtered = conversations.filter((item) => {
-    if (channel !== "all" && item.channel !== channel) return false;
+    if (channel !== "all") {
+      if (channel === "instagram" && item.channel !== "instagram") return false;
+      if (channel === "whatsapp" && item.channel !== "whatsapp") return false;
+      if (channel.startsWith("wa_")) {
+        const accId = Number(channel.replace("wa_", ""));
+        if (item.channel !== "whatsapp" || item.whatsapp_account_id !== accId) return false;
+      }
+    }
     if (view === "open" && item.status !== "open") return false;
     if (view === "unread" && !item.unread_count) return false;
     if (view === "ai" && item.mode !== "ai") return false;
@@ -129,6 +142,7 @@ function ConversationsContent() {
       ].some((value) => value?.toLowerCase().includes(term))
     );
   });
+
   const modeChange = async (mode: "ai" | "human" | "paused") => {
     if (!selectedId) return;
     await api.updateConversationMode(selectedId, mode);
@@ -200,9 +214,14 @@ function ConversationsContent() {
             >
               <option value="all">Все каналы</option>
               <option value="instagram">Instagram</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="telegram">Telegram</option>
+              <option value="whatsapp">Все WhatsApp</option>
+              {waAccounts.map((acc) => (
+                <option key={acc.id} value={`wa_${acc.id}`}>
+                  🟢 WA: {acc.name} ({acc.role})
+                </option>
+              ))}
             </select>
+
           </label>
         </div>
       </div>

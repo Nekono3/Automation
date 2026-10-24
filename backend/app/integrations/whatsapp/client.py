@@ -30,6 +30,7 @@ class WhatsAppClient:
         to_phone: str,
         text: str,
         preview_url: bool = False,
+        account_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Sends a plain text message to a WhatsApp user.
@@ -39,17 +40,22 @@ class WhatsAppClient:
 
         # 1. First attempt delivery via local Baileys QR bridge (if connected)
         try:
+            payload: Dict[str, Any] = {"to": clean_phone, "text": text}
+            if account_id:
+                payload["account_id"] = account_id
+
             async with httpx.AsyncClient(timeout=8.0) as bridge_client:
                 bridge_resp = await bridge_client.post(
                     "http://127.0.0.1:3001/send",
-                    json={"to": clean_phone, "text": text},
+                    json=payload,
                 )
                 if bridge_resp.status_code == 200:
                     data = bridge_resp.json()
-                    logger.info("Successfully sent WhatsApp message via local QR bridge to %s (id: %s)", clean_phone, data.get("message_id"))
+                    logger.info("Successfully sent WhatsApp message via local QR bridge (%s) to %s (id: %s)", account_id or "default", clean_phone, data.get("message_id"))
                     return data
         except Exception as bridge_exc:
             logger.debug("Local WhatsApp bridge unavailable (%s). Falling back to Cloud API.", bridge_exc)
+
 
         # 2. Fall back to Meta Cloud API
         if not self.access_token:

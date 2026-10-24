@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { WhatsAppAccount } from "@/lib/types";
 import { PageHeader, EmptyState } from "@/components/WorkspaceUI";
@@ -15,10 +15,14 @@ import {
   Edit2,
   Trash2,
   LogOut,
-  ExternalLink,
-  ShieldCheck,
-  UserCheck,
+  X,
+  Check,
+  Shield,
+  User,
+  Info,
 } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default function WhatsAppManagementPage() {
   const [accounts, setAccounts] = useState<WhatsAppAccount[]>([]);
@@ -57,7 +61,7 @@ export default function WhatsAppManagementPage() {
     setEditingAcc(null);
     setFormName("");
     setFormRole("Консультант");
-    setFormColor("blue");
+    setFormColor("emerald");
     setFormIsMain(false);
     setModalOpen(true);
   };
@@ -139,89 +143,53 @@ export default function WhatsAppManagementPage() {
   };
 
   return (
-    <div className="inbox-page" style={{ paddingBottom: "40px" }}>
-      <div className="inbox-page-heading">
-        <PageHeader
-          eyebrow="МУЛЬТИ-АККАУНТ И МЕНЕДЖЕРЫ"
-          title="Подключение WhatsApp"
-          description="Привязывайте номера сотрудников через QR-код. Сообщения распределяются по менеджерам автоматически."
-        >
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <button
-              className="icon-button refresh-button"
-              onClick={fetchAccounts}
-              aria-label="Обновить статусы"
-              title="Обновить"
-            >
-              <RefreshCw size={17} />
-            </button>
-            <button
-              onClick={handleOpenCreate}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "#10B981",
-                color: "#FFFFFF",
-                padding: "8px 16px",
-                borderRadius: "10px",
-                fontSize: "13px",
-                fontWeight: 700,
-                border: "none",
-                cursor: "pointer",
-                transition: "background 0.15s ease",
-              }}
-            >
-              <Plus size={16} />
-              Добавить аккаунт
-            </button>
-          </div>
-        </PageHeader>
-      </div>
+    <div className="workspace-page">
+      <PageHeader
+        eyebrow="МУЛЬТИ-АККАУНТ И МЕНЕДЖЕРЫ"
+        title="Подключение WhatsApp"
+        description="Привязывайте номера сотрудников через QR-код. Сообщения распределяются по менеджерам автоматически."
+      >
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={fetchAccounts}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+            title="Обновить статусы"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-[#283876]" />
+            <span>Обновить</span>
+          </button>
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#283876] hover:bg-[#1E2C60] text-white transition-colors shadow-md shadow-[#283876]/20 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Добавить аккаунт</span>
+          </button>
+        </div>
+      </PageHeader>
 
       {error && (
-        <div className="data-error" role="alert" style={{ margin: "0 24px 16px" }}>
-          <AlertTriangle size={17} />
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {successMsg && (
-        <div
-          role="status"
-          style={{
-            margin: "0 24px 16px",
-            background: "rgba(16, 185, 129, 0.15)",
-            border: "1px solid rgba(16, 185, 129, 0.3)",
-            color: "#34D399",
-            padding: "10px 16px",
-            borderRadius: "10px",
-            fontSize: "13px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <CheckCircle2 size={16} />
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Accounts Grid */}
-      <div
-        style={{
-          padding: "0 24px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-          gap: "20px",
-        }}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {loading && accounts.length === 0 ? (
-          <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0", color: "#94A3B8" }}>
+          <div className="col-span-full text-center py-16 text-slate-400 text-sm">
             Загрузка аккаунтов WhatsApp…
           </div>
         ) : accounts.length === 0 ? (
-          <div style={{ gridColumn: "1/-1" }}>
+          <div className="col-span-full">
             <EmptyState
               icon={Smartphone}
               title="Нет WhatsApp аккаунтов"
@@ -229,107 +197,77 @@ export default function WhatsAppManagementPage() {
             />
           </div>
         ) : (
-          accounts.map((acc, index) => {
+          accounts.map((acc) => {
             const isConnected = acc.live_status === "connected";
             const isQR = acc.live_status === "qr_ready";
 
             return (
               <div
                 key={acc.id}
-                style={{
-                  background: "#1E293B",
-                  border: acc.is_main ? "2px solid #10B981" : "1px solid #334155",
-                  borderRadius: "18px",
-                  padding: "22px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  position: "relative",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
-                }}
+                className={`bg-white border rounded-2xl p-5 shadow-sm flex flex-col justify-between transition-all ${
+                  acc.is_main
+                    ? "border-2 border-[#283876]/30 shadow-blue-50/50"
+                    : "border-slate-200/90 hover:border-slate-300"
+                }`}
               >
-                {/* Header */}
+                {/* Top Section */}
                 <div>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", marginBottom: "14px" }}>
+                  <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "17px", fontWeight: 800, color: "#FFFFFF" }}>{acc.name}</span>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-slate-900 tracking-tight">{acc.name}</h2>
                         {acc.is_main && (
-                          <span
-                            style={{
-                              fontSize: "10.5px",
-                              fontWeight: 700,
-                              background: "rgba(16, 185, 129, 0.2)",
-                              color: "#34D399",
-                              padding: "2px 7px",
-                              borderRadius: "6px",
-                              border: "1px solid rgba(16, 185, 129, 0.3)",
-                            }}
-                          >
+                          <span className="text-[11px] font-bold bg-blue-50 text-[#283876] border border-blue-200/70 px-2 py-0.5 rounded-md">
                             Главный
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "3px" }}>
-                        Роль: <strong style={{ color: "#E2E8F0" }}>{acc.role}</strong> • ID: {acc.account_id}
+                      <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                        <span>{acc.role}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="font-mono text-slate-400 text-[11px]">{acc.account_id}</span>
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleOpenEdit(acc)}
-                        className="icon-button"
+                        className="p-1.5 text-slate-400 hover:text-[#283876] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                         title="Редактировать имя и роль"
-                        style={{ width: "32px", height: "32px", padding: 0 }}
                       >
-                        <Edit2 size={15} />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       {!acc.is_main && (
                         <button
                           onClick={() => handleDelete(acc.account_id, acc.name)}
-                          className="icon-button"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                           title="Удалить аккаунт"
-                          style={{ width: "32px", height: "32px", padding: 0, color: "#F87171" }}
                         >
-                          <Trash2 size={15} />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
                   </div>
 
                   {/* Status Pill */}
-                  <div style={{ marginBottom: "16px" }}>
+                  <div className="mb-3.5">
                     <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontSize: "11.5px",
-                        fontWeight: 700,
-                        padding: "4px 10px",
-                        borderRadius: "9999px",
-                        background: isConnected
-                          ? "rgba(16, 185, 129, 0.15)"
+                      className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        isConnected
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                           : isQR
-                          ? "rgba(245, 158, 11, 0.15)"
-                          : "rgba(239, 68, 68, 0.15)",
-                        color: isConnected ? "#34D399" : isQR ? "#FBBF24" : "#F87171",
-                        border: `1px solid ${
-                          isConnected
-                            ? "rgba(16, 185, 129, 0.3)"
-                            : isQR
-                            ? "rgba(245, 158, 11, 0.3)"
-                            : "rgba(239, 68, 68, 0.3)"
-                        }`,
-                      }}
+                          ? "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-slate-100 text-slate-600 border border-slate-200"
+                      }`}
                     >
                       <span
-                        style={{
-                          width: "7px",
-                          height: "7px",
-                          borderRadius: "50%",
-                          background: "currentColor",
-                        }}
+                        className={`w-2 h-2 rounded-full ${
+                          isConnected
+                            ? "bg-emerald-500"
+                            : isQR
+                            ? "bg-amber-500 animate-pulse"
+                            : "bg-slate-400"
+                        }`}
                       />
                       {isConnected
                         ? "Подключен к WhatsApp"
@@ -340,149 +278,74 @@ export default function WhatsAppManagementPage() {
                   </div>
 
                   {/* QR or Connected Box */}
-                  <div
-                    style={{
-                      background: "#0F172A",
-                      border: "1px dashed #334155",
-                      borderRadius: "14px",
-                      padding: "16px",
-                      minHeight: "230px",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: "16px",
-                    }}
-                  >
+                  <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-4 my-2 flex flex-col items-center justify-center min-h-[230px]">
                     {isConnected ? (
-                      <div style={{ textAlign: "center", padding: "10px 0" }}>
-                        <div
-                          style={{
-                            width: "56px",
-                            height: "56px",
-                            borderRadius: "50%",
-                            background: "rgba(16, 185, 129, 0.15)",
-                            color: "#10B981",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            margin: "0 auto 12px",
-                          }}
-                        >
+                      <div className="text-center py-4">
+                        <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 shadow-sm border border-emerald-200/50">
                           <WhatsAppIcon className="w-7 h-7" />
                         </div>
-                        <div
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "19px",
-                            fontWeight: 800,
-                            color: "#FFFFFF",
-                            letterSpacing: "0.5px",
-                            marginBottom: "6px",
-                          }}
-                        >
+                        <div className="font-mono text-xl font-bold text-slate-900 tracking-wide mb-1">
                           {acc.phone || "Номер привязан"}
                         </div>
-                        <div style={{ fontSize: "12.5px", color: "#94A3B8" }}>
-                          Входящие диалоги на этот номер будут подписаны как <strong>{acc.name}</strong>.
+                        <div className="text-xs text-slate-500 max-w-[240px] mx-auto leading-relaxed">
+                          Диалоги на этот номер будут подписаны именем <strong>{acc.name}</strong>.
                         </div>
                       </div>
                     ) : acc.qr_image ? (
-                      <div style={{ textAlign: "center" }}>
-                        <img
-                          src={acc.qr_image}
-                          alt="WhatsApp QR Code"
-                          style={{
-                            width: "190px",
-                            height: "190px",
-                            borderRadius: "10px",
-                            display: "block",
-                            margin: "0 auto 10px",
-                            boxShadow: "0 4px 14px rgba(0,0,0,0.4)",
-                          }}
-                        />
-                        <div style={{ fontSize: "11px", color: "#94A3B8" }}>
-                          Обновляется автоматически каждые 4 сек.
+                      <div className="text-center">
+                        <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-sm inline-block mb-2">
+                          <img
+                            src={acc.qr_image}
+                            alt="WhatsApp QR Code"
+                            className="w-[180px] h-[180px] rounded-lg block"
+                          />
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          QR обновляется автоматически
                         </div>
                       </div>
                     ) : (
-                      <div style={{ textAlign: "center", color: "#64748B", fontSize: "13px" }}>
-                        <QrCode size={36} style={{ margin: "0 auto 10px", opacity: 0.5 }} />
-                        Генерация QR-кода…
+                      <div className="text-center text-slate-400 text-xs py-8">
+                        <QrCode className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#283876]" />
+                        <span>Генерация QR-кода…</span>
                       </div>
                     )}
                   </div>
 
                   {/* Instructions */}
-                  <div
-                    style={{
-                      background: "rgba(15, 23, 42, 0.6)",
-                      border: "1px solid #334155",
-                      borderRadius: "10px",
-                      padding: "10px 14px",
-                      fontSize: "12px",
-                      color: "#94A3B8",
-                      lineHeight: "1.5",
-                      marginBottom: "16px",
-                    }}
-                  >
-                    {isConnected ? (
-                      <div>
-                        ✅ <strong>Устройство синхронизировано.</strong> Сообщения клиентов приходят в единый Inbox CRM.
-                      </div>
-                    ) : (
-                      <div>
-                        📱 <strong>Как привязать:</strong> В WhatsApp на телефоне: <i>Настройки / Три точки → Связанные устройства → Привязка устройства</i> и наведите камеру на QR.
-                      </div>
-                    )}
+                  <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-3 text-xs text-slate-600 mb-4 leading-relaxed flex items-start gap-2">
+                    <Info className="w-4 h-4 text-[#283876] shrink-0 mt-0.5" />
+                    <div>
+                      {isConnected ? (
+                        <span>
+                          Устройство синхронизировано. Входящие и исходящие сообщения отображаются в едином Inbox CRM.
+                        </span>
+                      ) : (
+                        <span>
+                          На телефоне откройте: <strong>WhatsApp → Связанные устройства → Привязка устройства</strong> и наведите камеру на QR.
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Card Actions */}
-                <div style={{ display: "flex", gap: "8px", paddingTop: "8px", borderTop: "1px solid #334155" }}>
+                <div className="pt-3 border-t border-slate-100">
                   {isConnected ? (
                     <button
                       onClick={() => handleDisconnect(acc.account_id, acc.name)}
-                      style={{
-                        flex: 1,
-                        background: "rgba(239, 68, 68, 0.15)",
-                        border: "1px solid rgba(239, 68, 68, 0.3)",
-                        color: "#FCA5A5",
-                        padding: "8px 12px",
-                        borderRadius: "10px",
-                        fontSize: "12.5px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
-                      }}
+                      className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
                     >
-                      <LogOut size={14} />
-                      Отвязать номер
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Отвязать номер</span>
                     </button>
                   ) : (
                     <button
                       onClick={() => handleRestart(acc.account_id)}
-                      style={{
-                        flex: 1,
-                        background: "#2563EB",
-                        border: "none",
-                        color: "#FFFFFF",
-                        padding: "8px 12px",
-                        borderRadius: "10px",
-                        fontSize: "12.5px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
-                      }}
+                      className="w-full bg-[#283876] hover:bg-[#1E2C60] text-white font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-sm"
                     >
-                      <RefreshCw size={14} />
-                      Обновить QR-код
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Обновить QR-код</span>
                     </button>
                   )}
                 </div>
@@ -495,43 +358,28 @@ export default function WhatsAppManagementPage() {
       {/* Modal for Create / Edit */}
       {modalOpen && (
         <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0, 0, 0, 0.75)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-            padding: "16px",
-          }}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setModalOpen(false)}
         >
           <div
-            style={{
-              background: "#1E293B",
-              border: "1px solid #334155",
-              borderRadius: "20px",
-              padding: "28px",
-              maxWidth: "460px",
-              width: "100%",
-              boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
-            }}
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: "19px", fontWeight: 800, margin: "0 0 6px", color: "#FFFFFF" }}>
-              {editingAcc ? "Редактировать WhatsApp аккаунт" : "Добавить новый WhatsApp номер"}
-            </h3>
-            <p style={{ fontSize: "13px", color: "#94A3B8", margin: "0 0 20px" }}>
-              {editingAcc
-                ? "Измените имя менеджера и должность для отображения в CRM."
-                : "Будет создана новая сессия. Вы сможете привязать телефон через QR-код."}
-            </p>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                {editingAcc ? "Редактировать WhatsApp аккаунт" : "Добавить новый WhatsApp номер"}
+              </h3>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSave}>
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12.5px", fontWeight: 700, color: "#E2E8F0", marginBottom: "6px" }}>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
                   Имя менеджера / Название номера *
                 </label>
                 <input
@@ -540,21 +388,12 @@ export default function WhatsAppManagementPage() {
                   placeholder="Например: Айгуль, Элина, Алекс"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    background: "#0F172A",
-                    border: "1px solid #334155",
-                    borderRadius: "10px",
-                    color: "#FFFFFF",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-[#283876] focus:bg-white transition-colors"
                 />
               </div>
 
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12.5px", fontWeight: 700, color: "#E2E8F0", marginBottom: "6px" }}>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
                   Должность / Роль
                 </label>
                 <input
@@ -562,62 +401,34 @@ export default function WhatsAppManagementPage() {
                   placeholder="Например: Главный менеджер, Консультант по визам"
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    background: "#0F172A",
-                    border: "1px solid #334155",
-                    borderRadius: "10px",
-                    color: "#FFFFFF",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-[#283876] focus:bg-white transition-colors"
                 />
               </div>
 
-              <div style={{ marginBottom: "22px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "13px", color: "#E2E8F0" }}>
+              <div className="pt-1">
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs text-slate-700 select-none">
                   <input
                     type="checkbox"
                     checked={formIsMain}
                     onChange={(e) => setFormIsMain(e.target.checked)}
-                    style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                    className="w-4 h-4 rounded text-[#283876] focus:ring-[#283876]"
                   />
                   <span>Сделать этот номер <strong>Главным (Руководитель)</strong></span>
                 </label>
               </div>
 
-              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  style={{
-                    background: "#334155",
-                    border: "none",
-                    color: "#E2E8F0",
-                    padding: "9px 18px",
-                    borderRadius: "10px",
-                    fontSize: "13.5px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !formName.trim()}
-                  style={{
-                    background: "#10B981",
-                    border: "none",
-                    color: "#FFFFFF",
-                    padding: "9px 20px",
-                    borderRadius: "10px",
-                    fontSize: "13.5px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    opacity: submitting || !formName.trim() ? 0.6 : 1,
-                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#283876] hover:bg-[#1E2C60] text-white transition-colors shadow-md shadow-[#283876]/20 cursor-pointer disabled:opacity-50"
                 >
                   {submitting ? "Сохранение…" : editingAcc ? "Сохранить изменения" : "Создать аккаунт"}
                 </button>

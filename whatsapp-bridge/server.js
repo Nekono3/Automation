@@ -464,34 +464,155 @@ app.get(['/', '/qr', '/whatsapp-qr'], (req, res) => {
       <meta http-equiv="refresh" content="5">
       <style>
         * { box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0F172A; color: #F8FAFC; margin: 0; padding: 30px 16px; min-height: 100vh; }
-        .header { max-width: 1100px; margin: 0 auto 30px; text-align: center; }
-        .header h1 { font-size: 26px; font-weight: 800; margin: 0 0 8px; color: #FFFFFF; }
-        .header p { color: #94A3B8; font-size: 14px; margin: 0; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; max-width: 1100px; margin: 0 auto; }
-        .card { background: #1E293B; border: 1px solid #334155; border-radius: 20px; padding: 24px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
-        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #334155; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          background: #F8FAFC;
+          color: #0F172A;
+          margin: 0;
+          padding: 36px 16px 60px;
+          min-height: 100vh;
+          -webkit-font-smoothing: antialiased;
+        }
+        .header { max-width: 1100px; margin: 0 auto 32px; text-align: center; }
+        .header .eyebrow {
+          display: inline-block;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #283876;
+          background: #EEF2FF;
+          padding: 4px 12px;
+          border-radius: 9999px;
+          margin-bottom: 12px;
+        }
+        .header h1 { font-size: 26px; font-weight: 800; margin: 0 0 8px; color: #0F172A; }
+        .header p { color: #64748B; font-size: 14px; margin: 0 auto; max-width: 650px; line-height: 1.5; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto; }
+        .card {
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          border-radius: 18px;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .card.is-main {
+          border: 2px solid rgba(40, 56, 118, 0.25);
+          box-shadow: 0 4px 20px rgba(40, 56, 118, 0.08);
+        }
+        .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #F1F5F9; }
         .title-box { text-align: left; }
-        .title-box h2 { font-size: 17px; font-weight: 700; margin: 0; color: #FFFFFF; }
-        .title-box .role { font-size: 12px; color: #94A3B8; margin-top: 2px; }
-        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; }
-        .badge.connected { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .badge.qr_ready { background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3); }
-        .badge.disconnected { background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-        .qr-box { background: #0F172A; border: 2px dashed #475569; border-radius: 14px; padding: 12px; margin: 12px 0 20px; min-height: 220px; display: flex; align-items: center; justify-content: center; }
-        .qr-img { width: 190px; height: 190px; border-radius: 8px; display: block; margin: 0 auto; }
-        .connected-box { padding: 30px 10px; }
-        .phone { font-size: 18px; font-weight: 800; color: #10B981; font-mono: monospace; margin: 10px 0; }
-        .info { font-size: 13px; color: #94A3B8; line-height: 1.5; margin-bottom: 16px; }
-        .btn { display: inline-block; background: #3B82F6; color: white; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; }
-        .btn.danger { background: rgba(239, 68, 68, 0.2); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.4); }
-        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #64748B; }
+        .title-box h2 { font-size: 17px; font-weight: 700; margin: 0; color: #0F172A; display: flex; align-items: center; gap: 8px; }
+        .title-box .main-pill {
+          font-size: 10px;
+          font-weight: 700;
+          color: #283876;
+          background: #EFF6FF;
+          border: 1px solid #BFDBFE;
+          padding: 2px 8px;
+          border-radius: 6px;
+        }
+        .title-box .role { font-size: 12px; color: #64748B; margin-top: 4px; font-weight: 500; }
+        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .badge.connected { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
+        .badge.qr_ready { background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; }
+        .badge.disconnected { background: #F1F5F9; color: #475569; border: 1px solid #E2E8F0; }
+        .qr-box {
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 14px;
+          padding: 16px;
+          margin: 8px 0 16px;
+          min-height: 230px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+        .qr-img {
+          width: 185px;
+          height: 185px;
+          border-radius: 10px;
+          display: block;
+          margin: 0 auto;
+          background: #FFFFFF;
+          padding: 8px;
+          border: 1px solid #E2E8F0;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+        .connected-box { padding: 16px 10px; }
+        .icon-circle {
+          width: 52px;
+          height: 52px;
+          border-radius: 14px;
+          background: #D1FAE5;
+          color: #059669;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          margin: 0 auto 12px;
+          border: 1px solid #A7F3D0;
+        }
+        .phone { font-size: 19px; font-weight: 800; color: #0F172A; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin: 4px 0 6px; }
+        .info { font-size: 12px; color: #64748B; line-height: 1.5; margin: 0; }
+        .tip-box {
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-size: 12px;
+          color: #475569;
+          line-height: 1.5;
+          margin-bottom: 16px;
+          text-align: left;
+        }
+        .btn {
+          display: block;
+          width: 100%;
+          background: #283876;
+          color: #FFFFFF;
+          padding: 10px 16px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 700;
+          text-decoration: none;
+          border: none;
+          cursor: pointer;
+          transition: background-color 0.15s;
+          box-shadow: 0 1px 2px rgba(40, 56, 118, 0.2);
+        }
+        .btn:hover { background: #1E2C60; }
+        .btn.danger {
+          background: #FFF1F2;
+          color: #BE123C;
+          border: 1px solid #FECDD3;
+          box-shadow: none;
+        }
+        .btn.danger:hover { background: #FFE4E6; }
+        .footer {
+          text-align: center;
+          margin-top: 36px;
+          font-size: 13px;
+          color: #64748B;
+        }
+        .footer a {
+          color: #283876;
+          font-weight: 700;
+          text-decoration: none;
+        }
+        .footer a:hover { text-decoration: underline; }
       </style>
     </head>
     <body>
       <div class="header">
-        <h1>📱 Мульти-аккаунт WhatsApp (Consulteam)</h1>
-        <p>Каждый номер работает независимо. Диалоги автоматически распределяются и маркируются именем менеджера.</p>
+        <div class="eyebrow">Мульти-аккаунт WhatsApp</div>
+        <h1>Подключение номеров компании</h1>
+        <p>Каждый номер работает независимо. Входящие и исходящие сообщения отображаются в едином Inbox CRM с указанием ответственного сотрудника.</p>
       </div>
 
       <div class="grid">
@@ -499,17 +620,21 @@ app.get(['/', '/qr', '/whatsapp-qr'], (req, res) => {
           .map((s, idx) => {
             const isConn = s.status === 'connected';
             const isQR = s.status === 'qr_ready';
+            const isMain = s.sessionId === 'account_1';
             const num = idx + 1;
             return `
-            <div class="card">
+            <div class="card ${isMain ? 'is-main' : ''}">
               <div class="card-header">
                 <div class="title-box">
-                  <h2>WhatsApp #${num} (${s.sessionId})</h2>
-                  <div class="role">${s.sessionId === 'account_1' ? 'Главный номер (Руководитель)' : 'Рабочий номер (Менеджер)'}</div>
+                  <h2>
+                    WhatsApp #${num}
+                    ${isMain ? '<span class="main-pill">Главный</span>' : ''}
+                  </h2>
+                  <div class="role">${isMain ? 'Руководитель (Главный номер)' : 'Рабочий менеджер'} • ${s.sessionId}</div>
                 </div>
                 <div class="badge ${s.status}">
                   <span style="width: 7px; height: 7px; border-radius: 50%; background: currentColor;"></span>
-                  ${isConn ? 'Подключен' : isQR ? 'Сканируйте QR' : 'Ожидание'}
+                  ${isConn ? 'Подключен' : isQR ? 'Ожидает QR' : 'Отключен'}
                 </div>
               </div>
 
@@ -517,27 +642,30 @@ app.get(['/', '/qr', '/whatsapp-qr'], (req, res) => {
                 ${
                   isConn
                     ? `<div class="connected-box">
-                        <div style="font-size: 32px;">✅</div>
+                        <div class="icon-circle">✓</div>
                         <div class="phone">+${s.phone}</div>
-                        <div class="info">Номер активен и обрабатывает сообщения.</div>
+                        <p class="info">Номер активен и синхронизирован с CRM.</p>
                        </div>`
                     : s.qr_image
-                    ? `<img src="${s.qr_image}" class="qr-img" alt="QR" />`
-                    : `<div style="color: #64748B; font-size: 13px;">Генерация QR-кода...</div>`
+                    ? `<div>
+                         <img src="${s.qr_image}" class="qr-img" alt="WhatsApp QR Code" />
+                         <div style="font-size: 11px; color: #94A3B8; margin-top: 6px;">QR обновляется автоматически</div>
+                       </div>`
+                    : `<div style="color: #94A3B8; font-size: 13px;">Генерация QR-кода…</div>`
                 }
               </div>
 
               <div>
-                <p class="info" style="margin: 0 0 12px; font-size: 12px;">
+                <div class="tip-box">
                   ${
                     isConn
-                      ? 'Чтобы привязать другой номер, нажмите «Отключить».'
-                      : 'В WhatsApp на телефоне: Связанные устройства → Привязка устройства.'
+                      ? 'Устройство привязано. Чтобы подключить другой номер, нажмите «Отвязать номер».'
+                      : 'В WhatsApp на телефоне откройте: <strong>Связанные устройства → Привязка устройства</strong> и наведите камеру.'
                   }
-                </p>
+                </div>
                 ${
                   isConn
-                    ? `<button class="btn danger" onclick="disconnect('${s.sessionId}')">Отключить номер</button>`
+                    ? `<button class="btn danger" onclick="disconnect('${s.sessionId}')">Отвязать номер</button>`
                     : `<button class="btn" onclick="restart('${s.sessionId}')">Обновить QR-код</button>`
                 }
               </div>
@@ -548,12 +676,12 @@ app.get(['/', '/qr', '/whatsapp-qr'], (req, res) => {
       </div>
 
       <div class="footer">
-        Автообновление статусов каждые 5 секунд • <a href="/dashboard/whatsapp" style="color: #38BDF8;">Управление в CRM Дашборде</a>
+        Автообновление статусов каждые 5 сек • <a href="/dashboard/whatsapp">Перейти в панель CRM Дашборда →</a>
       </div>
 
       <script>
         async function disconnect(id) {
-          if (!confirm('Отключить этот WhatsApp аккаунт?')) return;
+          if (!confirm('Отключить этот WhatsApp аккаунт? Потребуется повторное сканирование QR.')) return;
           await fetch('/api/sessions/' + id + '/logout', { method: 'POST' });
           setTimeout(() => location.reload(), 1000);
         }
@@ -561,7 +689,6 @@ app.get(['/', '/qr', '/whatsapp-qr'], (req, res) => {
           await fetch('/api/sessions/' + id + '/restart', { method: 'POST' });
           setTimeout(() => location.reload(), 1000);
         }
-      </script>
     </body>
     </html>
   `);

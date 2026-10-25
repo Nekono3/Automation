@@ -6,8 +6,9 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 class UserBase(BaseModel):
     email: str
     full_name: str
-    role: str = "employee"
+    role: str = "manager"
     is_active: bool = True
+    whatsapp_account_id: Optional[int] = None
 
 
 class UserCreate(UserBase):

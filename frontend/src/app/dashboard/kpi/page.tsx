@@ -22,6 +22,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { PageHeader, EmptyState, DataError } from "@/components/WorkspaceUI";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,9 @@ const KPI_CATEGORIES = [
 ];
 
 export default function KPISellersPage() {
+  const { user } = useAuth();
+  const canManageKPI = user?.role === "admin" || user?.role === "lead_manager" || Boolean(user?.is_superuser);
+
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [selectedSellerId, setSelectedSellerId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,7 +99,7 @@ export default function KPISellersPage() {
 
   // Open Score Modal
   const handleOpenScoreModal = (period?: string, categoryKey?: string, currentScore?: number) => {
-    if (!activeSeller) return;
+    if (!activeSeller || !canManageKPI) return;
     setIsCustomPeriod(false);
     setCustomPeriodText("");
     setScoreForm({
@@ -202,34 +206,41 @@ export default function KPISellersPage() {
         title="KPI система сатуучулар (Продавцы)"
         description="Еженедельный учет баллов по категориям, контроль дисциплины, созвонов, продаж и командных задач."
       >
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={handleSyncSpreadsheet}
-            disabled={syncing}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-            title="Загрузить свежие данные из Google Таблицы KPI"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-[#283876] ${syncing ? "animate-spin" : ""}`} />
-            <span>{syncing ? "Синхронизация..." : "Синхронизировать с таблицей"}</span>
-          </button>
+        {canManageKPI ? (
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={handleSyncSpreadsheet}
+              disabled={syncing}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+              title="Загрузить свежие данные из Google Таблицы KPI"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#283876] ${syncing ? "animate-spin" : ""}`} />
+              <span>{syncing ? "Синхронизация..." : "Синхронизировать с таблицей"}</span>
+            </button>
 
-          <button
-            onClick={() => setIsAddSellerModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-          >
-            <Users className="w-3.5 h-3.5 text-slate-500" />
-            <span>+ Добавить продавца</span>
-          </button>
+            <button
+              onClick={() => setIsAddSellerModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+            >
+              <Users className="w-3.5 h-3.5 text-slate-500" />
+              <span>+ Добавить продавца</span>
+            </button>
 
-          <button
-            onClick={() => handleOpenScoreModal()}
-            disabled={!activeSeller}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#283876] hover:bg-[#1E2C60] text-white transition-colors shadow-md shadow-[#283876]/20 cursor-pointer disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Выставить / изменить балл</span>
-          </button>
-        </div>
+            <button
+              onClick={() => handleOpenScoreModal()}
+              disabled={!activeSeller}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#283876] hover:bg-[#1E2C60] text-white transition-colors shadow-md shadow-[#283876]/20 cursor-pointer disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Выставить / изменить балл</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-50 border border-slate-200 text-slate-600 shadow-sm">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Режим просмотра KPI (редактирование доступно только РОП и Админу)</span>
+          </div>
+        )}
       </PageHeader>
 
       {statusMessage && (
@@ -263,7 +274,7 @@ export default function KPISellersPage() {
           ))}
         </div>
 
-        {activeSeller && (
+        {canManageKPI && activeSeller && (
           <button
             onClick={() => setDeletingSeller(activeSeller)}
             className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
@@ -402,9 +413,11 @@ export default function KPISellersPage() {
 
                     {/* Punctuality */}
                     <td
-                      onClick={() => handleOpenScoreModal(rec.period, "punctuality", rec.punctuality)}
-                      className="px-5 py-3 font-mono border-l border-slate-100 cursor-pointer hover:bg-blue-50/60 transition-colors"
-                      title="Кликните, чтобы изменить балл"
+                      onClick={() => canManageKPI && handleOpenScoreModal(rec.period, "punctuality", rec.punctuality)}
+                      className={`px-5 py-3 font-mono border-l border-slate-100 transition-colors ${
+                        canManageKPI ? "cursor-pointer hover:bg-blue-50/60" : ""
+                      }`}
+                      title={canManageKPI ? "Кликните, чтобы изменить балл" : undefined}
                     >
                       <span className={`font-semibold ${rec.punctuality > 0 ? "text-slate-900" : "text-slate-300"}`}>
                         {rec.punctuality}
@@ -413,9 +426,11 @@ export default function KPISellersPage() {
 
                     {/* Calls & Meetings */}
                     <td
-                      onClick={() => handleOpenScoreModal(rec.period, "calls_meetings", rec.calls_meetings)}
-                      className="px-5 py-3 font-mono cursor-pointer hover:bg-blue-50/60 transition-colors"
-                      title="Кликните, чтобы изменить балл"
+                      onClick={() => canManageKPI && handleOpenScoreModal(rec.period, "calls_meetings", rec.calls_meetings)}
+                      className={`px-5 py-3 font-mono transition-colors ${
+                        canManageKPI ? "cursor-pointer hover:bg-blue-50/60" : ""
+                      }`}
+                      title={canManageKPI ? "Кликните, чтобы изменить балл" : undefined}
                     >
                       <span className={`font-semibold ${rec.calls_meetings > 0 ? "text-slate-900" : "text-slate-300"}`}>
                         {rec.calls_meetings}
@@ -424,9 +439,11 @@ export default function KPISellersPage() {
 
                     {/* Sales */}
                     <td
-                      onClick={() => handleOpenScoreModal(rec.period, "sales", rec.sales)}
-                      className="px-5 py-3 font-mono cursor-pointer hover:bg-blue-50/60 transition-colors"
-                      title="Кликните, чтобы изменить балл"
+                      onClick={() => canManageKPI && handleOpenScoreModal(rec.period, "sales", rec.sales)}
+                      className={`px-5 py-3 font-mono transition-colors ${
+                        canManageKPI ? "cursor-pointer hover:bg-blue-50/60" : ""
+                      }`}
+                      title={canManageKPI ? "Кликните, чтобы изменить балл" : undefined}
                     >
                       <span className={`font-semibold ${rec.sales > 0 ? "text-emerald-700 font-bold" : "text-slate-300"}`}>
                         {rec.sales}
@@ -435,9 +452,11 @@ export default function KPISellersPage() {
 
                     {/* Team meetings */}
                     <td
-                      onClick={() => handleOpenScoreModal(rec.period, "team_meetings", rec.team_meetings)}
-                      className="px-5 py-3 font-mono border-r border-slate-100 cursor-pointer hover:bg-blue-50/60 transition-colors"
-                      title="Кликните, чтобы изменить балл"
+                      onClick={() => canManageKPI && handleOpenScoreModal(rec.period, "team_meetings", rec.team_meetings)}
+                      className={`px-5 py-3 font-mono border-r border-slate-100 transition-colors ${
+                        canManageKPI ? "cursor-pointer hover:bg-blue-50/60" : ""
+                      }`}
+                      title={canManageKPI ? "Кликните, чтобы изменить балл" : undefined}
                     >
                       <span className={`font-semibold ${rec.team_meetings > 0 ? "text-slate-900" : "text-slate-300"}`}>
                         {rec.team_meetings}
@@ -446,9 +465,11 @@ export default function KPISellersPage() {
 
                     {/* Innovation */}
                     <td
-                      onClick={() => handleOpenScoreModal(rec.period, "innovation", rec.innovation)}
-                      className="px-5 py-3 font-mono border-r border-slate-100 cursor-pointer hover:bg-purple-50/60 transition-colors"
-                      title="Кликните, чтобы изменить балл"
+                      onClick={() => canManageKPI && handleOpenScoreModal(rec.period, "innovation", rec.innovation)}
+                      className={`px-5 py-3 font-mono border-r border-slate-100 transition-colors ${
+                        canManageKPI ? "cursor-pointer hover:bg-purple-50/60" : ""
+                      }`}
+                      title={canManageKPI ? "Кликните, чтобы изменить балл" : undefined}
                     >
                       <span className={`font-semibold ${rec.innovation > 0 ? "text-purple-700 font-bold" : "text-slate-300"}`}>
                         {rec.innovation}
@@ -470,27 +491,31 @@ export default function KPISellersPage() {
 
                     {/* Actions */}
                     <td className="px-5 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenScoreModal(rec.period)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-[#283876] hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Редактировать неделю"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Удалить запись за неделю ${rec.period}?`)) {
-                              await api.deleteKPIRecord(rec.id);
-                              fetchSellers();
-                            }
-                          }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                          title="Удалить запись недели"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {canManageKPI ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenScoreModal(rec.period)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-[#283876] hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Редактировать неделю"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Удалить запись за неделю ${rec.period}?`)) {
+                                await api.deleteKPIRecord(rec.id);
+                                fetchSellers();
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Удалить запись недели"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300 text-xs font-mono">-</span>
+                      )}
                     </td>
                   </tr>
                 ))

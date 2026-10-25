@@ -25,8 +25,10 @@ class ConversationService:
                 Conversation.channel == channel,
                 Conversation.status != "archived",
             )
-            .order_by(Conversation.created_at.desc())
         )
+        if whatsapp_account_id is not None:
+            query = query.where(Conversation.whatsapp_account_id == whatsapp_account_id)
+        query = query.order_by(Conversation.created_at.desc())
         result = await db.execute(query)
         conversation = result.scalars().first()
 

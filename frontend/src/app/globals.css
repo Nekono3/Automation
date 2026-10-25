@@ -167,7 +167,20 @@ a {
   color: #f4f6ff;
   display: flex;
   flex-direction: column;
-  padding: 30px 16px 0;
+  padding: 24px 14px 24px;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+.workspace-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+.workspace-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
 }
 .sidebar-brand {
   padding: 0 10px;

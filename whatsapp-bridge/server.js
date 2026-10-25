@@ -168,6 +168,18 @@ class SessionInstance {
           }
           const senderName = msg.pushName || '';
 
+          // Check for message revocation ("Delete for everyone")
+          const protocolMsg = msg.message?.protocolMessage;
+          if (protocolMsg && protocolMsg.type === 0 && protocolMsg.key?.id) {
+            console.log(`[WhatsApp Bridge][${this.sessionId}] Detected message revocation for ID: ${protocolMsg.key.id}`);
+            this.forwardToCRM({
+              account_id: this.sessionId,
+              event_type: 'revoke',
+              revoked_message_id: protocolMsg.key.id,
+            });
+            continue;
+          }
+
           const text =
             msg.message?.conversation ||
             msg.message?.extendedTextMessage?.text ||
@@ -186,6 +198,19 @@ class SessionInstance {
               sender_jid: remoteJid,
               text: text.trim(),
               message_id: msg.key?.id || '',
+            });
+          }
+        }
+      });
+
+      this.sock.ev.on('messages.update', (updates) => {
+        for (const update of updates) {
+          if (update.update?.message === null && update.key?.id) {
+            console.log(`[WhatsApp Bridge][${this.sessionId}] Message deleted in WhatsApp: ${update.key.id}`);
+            this.forwardToCRM({
+              account_id: this.sessionId,
+              event_type: 'revoke',
+              revoked_message_id: update.key.id,
             });
           }
         }
@@ -430,10 +455,12 @@ app.post('/send', async (req, res) => {
   }
 
   if (!session || session.connectionStatus !== 'connected') {
-    return res.status(503).json({ error: 'No active WhatsApp session available' });
+    console.error(`[WhatsApp Bridge] Cannot send to ${to}: requested session [${account_id}] is not connected.`);
+    return res.status(503).json({ error: `WhatsApp session '${account_id || 'default'}' is not connected` });
   }
 
   try {
+    console.log(`[WhatsApp Bridge] Sending WhatsApp message to ${to} via session [${session.sessionId}] (requested: ${account_id || 'auto'})`);
     const result = await session.sendMessage(to, text);
     res.json(result);
   } catch (err) {

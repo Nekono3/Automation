@@ -85,7 +85,11 @@ async def list_conversations(
         query = query.where(Conversation.status == status)
     if mode:
         query = query.where(Conversation.mode == mode)
-    if whatsapp_account_id is not None:
+
+    # Role-based scoping: regular managers only see chats for their assigned WhatsApp number
+    if current_user.role == "manager" and current_user.whatsapp_account_id:
+        query = query.where(Conversation.whatsapp_account_id == current_user.whatsapp_account_id)
+    elif whatsapp_account_id is not None:
         query = query.where(Conversation.whatsapp_account_id == whatsapp_account_id)
 
     query = query.offset(skip).limit(limit)
@@ -102,6 +106,11 @@ async def get_conversation(
     conversation = await ConversationService.get_by_id(db, conversation_id)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
+
+    if current_user.role == "manager" and current_user.whatsapp_account_id:
+        if conversation.whatsapp_account_id and conversation.whatsapp_account_id != current_user.whatsapp_account_id:
+            raise HTTPException(status_code=403, detail="Доступ к чатам других номеров ограничен")
+
     return conversation
 
 
@@ -114,6 +123,14 @@ async def list_messages(
     current_user: User = Depends(get_current_user),
 ):
     """Lists all messages in a specific conversation."""
+    conversation = await ConversationService.get_by_id(db, conversation_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    if current_user.role == "manager" and current_user.whatsapp_account_id:
+        if conversation.whatsapp_account_id and conversation.whatsapp_account_id != current_user.whatsapp_account_id:
+            raise HTTPException(status_code=403, detail="Доступ к чатам других номеров ограничен")
+
     query = (
         select(Message)
         .where(Message.conversation_id == conversation_id)
@@ -135,6 +152,10 @@ async def send_operator_message(
     conversation = await ConversationService.get_by_id(db, conversation_id)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
+
+    if current_user.role == "manager" and current_user.whatsapp_account_id:
+        if conversation.whatsapp_account_id and conversation.whatsapp_account_id != current_user.whatsapp_account_id:
+            raise HTTPException(status_code=403, detail="Доступ к чатам других номеров ограничен")
         
     channel = conversation.channel or "instagram"
     msg = Message(
@@ -157,7 +178,18 @@ async def send_operator_message(
         from app.integrations.whatsapp.client import WhatsAppClient
         wa_client = WhatsAppClient()
         target_phone = conversation.customer.whatsapp_id or conversation.customer.phone
-        account_id = conversation.whatsapp_account.account_id if conversation.whatsapp_account else None
+        account_id = None
+        if conversation.whatsapp_account:
+            account_id = conversation.whatsapp_account.account_id
+        elif conversation.whatsapp_account_id:
+            from app.models.whatsapp_account import WhatsAppAccount
+            acc_res = await db.execute(
+                select(WhatsAppAccount).where(WhatsAppAccount.id == conversation.whatsapp_account_id)
+            )
+            acc = acc_res.scalar_one_or_none()
+            if acc:
+                account_id = acc.account_id
+
         await wa_client.send_text_message(target_phone, payload.text, account_id=account_id)
     elif conversation.customer.instagram_id:
         client = InstagramClient()

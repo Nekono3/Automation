@@ -59,13 +59,28 @@ async def process_and_reply_background(
         # 2. Deliver message to customer via appropriate channel API
         if channel == "whatsapp" and (customer.whatsapp_id or customer.phone):
             from app.integrations.whatsapp.client import WhatsAppClient
+            from app.models.whatsapp_account import WhatsAppAccount
+            from sqlalchemy import select
             wa_client = WhatsAppClient()
             target_phone = customer.whatsapp_id or customer.phone
+            account_key = None
+            if conversation.whatsapp_account:
+                account_key = conversation.whatsapp_account.account_id
+            elif conversation.whatsapp_account_id:
+                acc_res = await db.execute(
+                    select(WhatsAppAccount).where(WhatsAppAccount.id == conversation.whatsapp_account_id)
+                )
+                acc = acc_res.scalar_one_or_none()
+                if acc:
+                    account_key = acc.account_id
+
+            logger.info("Delivering AI WhatsApp reply to %s via manager session '%s'", target_phone, account_key or "default")
             send_result = await wa_client.send_text_message(
                 to_phone=target_phone,
                 text=reply_text,
+                account_id=account_key,
             )
-            logger.info("WhatsApp delivery result for customer %s: %s", target_phone, send_result)
+            logger.info("WhatsApp delivery result for customer %s via session %s: %s", target_phone, account_key, send_result)
         elif customer.instagram_id:
             client = InstagramClient()
             send_result = await client.send_text_message(

@@ -16,6 +16,14 @@ from app.services.seller_kpi_service import SellerKPIService
 router = APIRouter(prefix="/api/kpi", tags=["Seller KPI"])
 
 
+def check_kpi_manage_permission(user: User):
+    if user.role not in ("admin", "lead_manager") and not getattr(user, "is_superuser", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только Администратор и Главный менеджер (РОП) могут выставлять или изменять баллы KPI",
+        )
+
+
 @router.get("/sellers", response_model=List[SellerRead])
 async def list_sellers(
     db: AsyncSession = Depends(get_db),
@@ -32,6 +40,7 @@ async def create_seller(
     current_user: User = Depends(get_current_user),
 ):
     """Add a new sales representative."""
+    check_kpi_manage_permission(current_user)
     seller = await SellerKPIService.create_seller(session=db, data=data)
     return SellerRead.model_validate(seller)
 
@@ -43,6 +52,7 @@ async def delete_seller(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a seller and all associated KPI records."""
+    check_kpi_manage_permission(current_user)
     deleted = await SellerKPIService.delete_seller(session=db, seller_id=seller_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Seller not found")
@@ -59,6 +69,7 @@ async def add_or_update_kpi_score(
     Add or update a score for a specific category within a period for a seller.
     Automatically recalculates total score.
     """
+    check_kpi_manage_permission(current_user)
     return await SellerKPIService.add_or_update_score(session=db, payload=payload)
 
 
@@ -69,6 +80,7 @@ async def delete_kpi_record(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a specific period KPI record."""
+    check_kpi_manage_permission(current_user)
     deleted = await SellerKPIService.delete_record(session=db, record_id=record_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
@@ -82,5 +94,6 @@ async def sync_kpi_spreadsheet(
     current_user: User = Depends(get_current_user),
 ):
     """Re-sync sellers and KPI records from official Google Sheets."""
+    check_kpi_manage_permission(current_user)
     seeded = await SellerKPIService.seed_default_kpi(session=db, force_reload=force)
     return {"status": "success", "seeded_records": seeded}

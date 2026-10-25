@@ -36,6 +36,13 @@ const navigation = [
   { href: "/dashboard/whatsapp", icon: WhatsAppIcon, label: "WhatsApp" },
 ];
 
+const getRoleLabel = (role?: string, isSuperuser?: boolean) => {
+  if (isSuperuser || role === "admin") return "Администратор";
+  if (role === "lead_manager") return "Главный менеджер (РОП)";
+  if (role === "manager") return "Менеджер";
+  if (role === "mentor") return "Ментор";
+  return "Сотрудник";
+};
 
 export default function DashboardLayout({
   children,
@@ -50,7 +57,16 @@ export default function DashboardLayout({
   const menuButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const current = navigation.find((item) => item.href === pathname);
-  const operator = user?.email?.split("@")[0] || "Оператор";
+  const userRole = user?.role || (user?.is_superuser ? "admin" : "manager");
+  const displayName = user?.full_name || user?.email?.split("@")[0] || "Оператор";
+  const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
+
+  const filteredNav = navigation.filter((item) => {
+    if (userRole === "manager" || userRole === "mentor") {
+      if (item.href === "/dashboard/automations" || item.href === "/dashboard/whatsapp") return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (!loading && !isAuthenticated) router.replace("/");
@@ -128,7 +144,7 @@ export default function DashboardLayout({
         </div>
         <p className="nav-label">УПРАВЛЕНИЕ</p>
         <nav className="workspace-nav" aria-label="Основная навигация">
-          {navigation.map(({ href, icon: Icon, label }) => (
+          {filteredNav.map(({ href, icon: Icon, label }) => (
             <Link
               key={href}
               href={href}
@@ -161,11 +177,11 @@ export default function DashboardLayout({
             </Link>
           </div>
           <div className="sidebar-profile">
-            <Avatar name={operator} />
+            <Avatar name={displayName} />
             <div>
-              <strong>{operator}</strong>
-              <span>
-                {user?.is_superuser ? "Администратор" : "Консультант"}
+              <strong>{displayName}</strong>
+              <span className="text-xs font-semibold text-slate-500">
+                {roleLabel}
               </span>
             </div>
             <button
@@ -209,12 +225,18 @@ export default function DashboardLayout({
                 aria-expanded={userMenu}
                 aria-label="Меню аккаунта"
               >
-                <Avatar name={operator} />
+                <Avatar name={displayName} />
                 <ChevronsUpDown size={14} />
               </button>
               {userMenu && (
                 <div className="profile-menu">
-                  <p>{user?.email}</p>
+                  <div className="px-3 py-2 border-b border-slate-100">
+                    <p className="font-bold text-xs text-slate-800">{displayName}</p>
+                    <p className="text-[11px] text-slate-500">{user?.email}</p>
+                    <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#283876] border border-blue-200">
+                      {roleLabel}
+                    </span>
+                  </div>
                   <button onClick={logout}>
                     <LogOut size={16} /> Выйти из аккаунта
                   </button>

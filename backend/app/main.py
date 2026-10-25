@@ -36,6 +36,12 @@ async def lifespan(app: FastAPI):
                     "REFERENCES whatsapp_accounts(id) ON DELETE SET NULL;"
                 )
             )
+            await conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_account_id INTEGER "
+                    "REFERENCES whatsapp_accounts(id) ON DELETE SET NULL;"
+                )
+            )
         logger.info("Database tables initialized successfully.")
 
         # Seed default consulting services & default admin
@@ -72,6 +78,10 @@ async def lifespan(app: FastAPI):
             seeded_wa = await WhatsAppAccountService.seed_default_accounts(session)
             if seeded_wa:
                 logger.info("Consulteam WhatsApp accounts initialized: %d", seeded_wa)
+
+            seeded_staff = await UserService.seed_default_staff_users(session)
+            if seeded_staff:
+                logger.info("Consulteam staff accounts seeded/updated: %d", seeded_staff)
 
 
     except Exception as exc:

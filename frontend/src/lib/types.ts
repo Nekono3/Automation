@@ -1,8 +1,13 @@
 export interface User {
-  id: string;
+  id: string | number;
   email: string;
+  full_name?: string;
+  role: 'admin' | 'lead_manager' | 'manager' | 'mentor' | string;
   is_active: boolean;
-  is_superuser: boolean;
+  is_superuser?: boolean;
+  whatsapp_account_id?: number | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface LoginResponse {

@@ -501,11 +501,13 @@ async def receive_whatsapp_event(
 
 class WhatsAppBridgePayload(BaseModel):
     account_id: Optional[str] = "account_1"
-    sender_phone: str
+    sender_phone: Optional[str] = ""
     sender_name: Optional[str] = None
     sender_jid: Optional[str] = None
-    text: str
+    text: Optional[str] = ""
     message_id: Optional[str] = None
+    event_type: Optional[str] = "message"
+    revoked_message_id: Optional[str] = None
 
 
 @router.post("/whatsapp-bridge")
@@ -515,16 +517,34 @@ async def receive_whatsapp_bridge_event(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Receives incoming WhatsApp message from the local Baileys bridge microservice.
+    Receives incoming WhatsApp message or revocation event from Baileys bridge.
     """
-    clean_phone = payload.sender_phone.replace("+", "").strip()
+    # 0. Handle message revocation ("Delete for everyone" in WhatsApp)
+    if payload.event_type == "revoke" and payload.revoked_message_id:
+        from app.models.message import Message
+        msg_res = await db.execute(
+            select(Message).where(Message.external_message_id == payload.revoked_message_id)
+        )
+        msg_obj = msg_res.scalar_one_or_none()
+        if msg_obj:
+            logger.info("Marking message #%d (ext: %s) as deleted_by_user in WhatsApp", msg_obj.id, payload.revoked_message_id)
+            msg_obj.status = "deleted_by_user"
+            extra = dict(msg_obj.extra_data or {})
+            extra["deleted_in_whatsapp"] = True
+            extra["deleted_at"] = datetime.now(timezone.utc).isoformat()
+            msg_obj.extra_data = extra
+            await db.commit()
+            return {"status": "ok", "action": "marked_as_deleted", "message_id": msg_obj.id}
+        return {"status": "ok", "action": "not_found"}
+
+    clean_phone = (payload.sender_phone or "").replace("+", "").strip()
     reply_target = payload.sender_jid or clean_phone
     display_phone = clean_phone.replace("@lid", "")
     if not display_phone.startswith("+") and display_phone.isdigit():
         display_phone = f"+{display_phone}"
 
     account_key = payload.account_id or "account_1"
-    logger.info("Received WhatsApp bridge message [%s] from %s (jid: %s): %s", account_key, display_phone, reply_target, payload.text[:40])
+    logger.info("Received WhatsApp bridge message [%s] from %s (jid: %s): %s", account_key, display_phone, reply_target, (payload.text or "")[:40])
 
     # 1. Deduplication via message_id check
     if payload.message_id:

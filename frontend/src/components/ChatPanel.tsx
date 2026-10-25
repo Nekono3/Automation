@@ -276,24 +276,57 @@ export function ChatPanel({
                     })}
                   </div>
                 )}
-                <div
-                  className={`message-row ${inbound ? "inbound" : "outbound"}`}
-                >
-                  <div
-                    className={`message-bubble ${message.sender_type === "ai" ? "ai-message" : ""}`}
-                  >
-                    <span className="message-author">
-                      {inbound ? (
-                        name
-                      ) : message.sender_type === "ai" ? (
-                        <>
-                          <Bot size={12} /> AI-ассистент
-                        </>
-                      ) : (
-                        "Консультант"
-                      )}
-                    </span>
-                    <p>{message.text}</p>
+                {(() => {
+                  const isDeleted =
+                    message.status === "deleted_by_user" ||
+                    (message as any).extra_data?.deleted_in_whatsapp;
+
+                  return (
+                    <div
+                      className={`message-row ${inbound ? "inbound" : "outbound"}`}
+                    >
+                      <div
+                        className={`message-bubble ${message.sender_type === "ai" ? "ai-message" : ""}`}
+                        style={
+                          isDeleted
+                            ? {
+                                background: "#FFFBEB",
+                                borderColor: "#FDE68A",
+                                color: "#78350F",
+                                border: "1px dashed #F59E0B",
+                              }
+                            : undefined
+                        }
+                      >
+                        {isDeleted && (
+                          <div
+                            style={{
+                              fontSize: "10.5px",
+                              fontWeight: 700,
+                              color: "#B45309",
+                              marginBottom: "4px",
+                              paddingBottom: "4px",
+                              borderBottom: "1px dashed rgba(245, 158, 11, 0.4)",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            <span>🗑️ Сообщение удалено в WhatsApp (сохранено в CRM)</span>
+                          </div>
+                        )}
+                        <span className="message-author">
+                          {inbound ? (
+                            name
+                          ) : message.sender_type === "ai" ? (
+                            <>
+                              <Bot size={12} /> AI-ассистент
+                            </>
+                          ) : (
+                            "Консультант"
+                          )}
+                        </span>
+                        <p>{message.text}</p>
                     {!!message.attachments?.length && (
                       <span className="message-attachment-note">
                         Вложение доступно в {channel}
@@ -308,8 +341,10 @@ export function ChatPanel({
                         <CheckCheck size={13} aria-label="Прочитано" />
                       )}
                     </span>
-                  </div>
-                </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })

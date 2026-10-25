@@ -60,3 +60,76 @@ class UserService:
         await db.commit()
         await db.refresh(admin)
         return admin
+
+    @staticmethod
+    async def seed_default_staff_users(db: AsyncSession) -> int:
+        """Seeds or updates the 5 default staff accounts with roles and whatsapp bindings."""
+        from app.models.whatsapp_account import WhatsAppAccount
+
+        # Fetch whatsapp accounts map (account_id -> id)
+        wa_result = await db.execute(select(WhatsAppAccount))
+        wa_accounts = wa_result.scalars().all()
+        wa_map = {acc.account_id: acc.id for acc in wa_accounts}
+
+        default_staff = [
+            {
+                "email": "admin@consulteam.kg",
+                "full_name": "Администратор Consulteam",
+                "password": "AdminConsul2026!",
+                "role": "admin",
+                "whatsapp_account_id": None,
+            },
+            {
+                "email": "rop@consulteam.kg",
+                "full_name": "РОП (Главный менеджер)",
+                "password": "RopConsul2026!",
+                "role": "lead_manager",
+                "whatsapp_account_id": wa_map.get("account_1"),
+            },
+            {
+                "email": "nursuluu@consulteam.kg",
+                "full_name": "Nursuluu (Менеджер)",
+                "password": "Nursuluu2026!",
+                "role": "manager",
+                "whatsapp_account_id": wa_map.get("account_2"),
+            },
+            {
+                "email": "manager3@consulteam.kg",
+                "full_name": "Менеджер 3",
+                "password": "Manager3Consul!",
+                "role": "manager",
+                "whatsapp_account_id": wa_map.get("account_3"),
+            },
+            {
+                "email": "mentor@consulteam.kg",
+                "full_name": "Ментор Consulteam",
+                "password": "MentorConsul2026!",
+                "role": "mentor",
+                "whatsapp_account_id": None,
+            },
+        ]
+
+        count = 0
+        for staff in default_staff:
+            user = await UserService.get_by_email(db, staff["email"])
+            if not user:
+                user = User(
+                    email=staff["email"],
+                    hashed_password=hash_password(staff["password"]),
+                    full_name=staff["full_name"],
+                    role=staff["role"],
+                    whatsapp_account_id=staff["whatsapp_account_id"],
+                    is_active=True,
+                )
+                db.add(user)
+                count += 1
+            else:
+                user.role = staff["role"]
+                user.full_name = staff["full_name"]
+                if staff["whatsapp_account_id"] is not None:
+                    user.whatsapp_account_id = staff["whatsapp_account_id"]
+                user.hashed_password = hash_password(staff["password"])
+                user.is_active = True
+
+        await db.commit()
+        return count

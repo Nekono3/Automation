@@ -103,6 +103,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth_router)
 app.include_router(webhook_router)
+app.include_router(webhook_router, prefix="/api")
 
 from app.api.routes.conversations import router as conversations_router
 from app.api.routes.customers import router as customers_router

@@ -1,4 +1,4 @@
-import { LoginResponse, User, Conversation, Message, Customer, Booking, Service, DashboardStats, WhatsAppAccount } from './types';
+import { LoginResponse, User, Conversation, Message, Customer, Booking, Service, DashboardStats, WhatsAppAccount, GlobalAIModeState } from './types';
 
 
 function getApiUrl(): string {
@@ -86,6 +86,21 @@ class ApiClient {
     return this.request<Conversation>(`/conversations/${id}/mode`, {
       method: 'PATCH',
       body: JSON.stringify({ mode, reason }),
+    });
+  }
+
+  async getGlobalAIMode(): Promise<GlobalAIModeState> {
+    return this.request<GlobalAIModeState>('/conversations/global-ai');
+  }
+
+  async updateGlobalAIMode(data: {
+    mode: 'ai' | 'human';
+    channel?: 'all' | 'whatsapp' | 'instagram';
+    apply_to_existing?: boolean;
+  }): Promise<GlobalAIModeState> {
+    return this.request<GlobalAIModeState>('/conversations/global-ai', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 

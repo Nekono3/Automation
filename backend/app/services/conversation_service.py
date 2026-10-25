@@ -32,11 +32,21 @@ class ConversationService:
 
         created = False
         if not conversation:
+            from app.services.setting_service import SettingService
+            ai_state = await SettingService.get_global_ai_state(db)
+            initial_mode = "ai"
+            if ai_state.get("global_mode") == "human":
+                initial_mode = "human"
+            elif channel == "whatsapp" and not ai_state.get("global_ai_whatsapp", True):
+                initial_mode = "human"
+            elif channel == "instagram" and not ai_state.get("global_ai_instagram", True):
+                initial_mode = "human"
+
             conversation = Conversation(
                 customer_id=customer_id,
                 channel=channel,
                 whatsapp_account_id=whatsapp_account_id,
-                mode="ai",
+                mode=initial_mode,
                 status="open",
             )
             db.add(conversation)

@@ -138,6 +138,16 @@ export interface Conversation {
   messages?: Message[];
 }
 
+export interface GlobalAIModeState {
+  global_mode: 'ai' | 'human';
+  global_ai_whatsapp: boolean;
+  global_ai_instagram: boolean;
+  total_open: number;
+  ai_open: number;
+  human_open: number;
+  paused_open: number;
+}
+
 
 export interface Service {
   id: string;

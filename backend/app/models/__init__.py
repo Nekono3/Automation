@@ -13,6 +13,7 @@ from app.models.university_program import UniversityProgram
 from app.models.seller_kpi import Seller, SellerKPIRecord
 from app.models.enrolled_student import EnrolledStudent
 from app.models.whatsapp_account import WhatsAppAccount
+from app.models.setting import SystemSetting
 
 __all__ = [
     "TimestampMixin",
@@ -33,5 +34,6 @@ __all__ = [
     "SellerKPIRecord",
     "EnrolledStudent",
     "WhatsAppAccount",
+    "SystemSetting",
 ]
 

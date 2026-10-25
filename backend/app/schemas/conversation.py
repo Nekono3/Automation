@@ -52,3 +52,19 @@ class ConversationRead(ConversationBase):
     customer: Optional[CustomerRead] = None
     messages: List[MessageRead] = []
 
+
+class GlobalAIModeUpdate(BaseModel):
+    mode: str  # "ai" | "human"
+    channel: str = "all"  # "all" | "whatsapp" | "instagram"
+    apply_to_existing: bool = True
+
+
+class GlobalAIModeRead(BaseModel):
+    global_mode: str
+    global_ai_whatsapp: bool
+    global_ai_instagram: bool
+    total_open: int
+    ai_open: int
+    human_open: int
+    paused_open: int
+

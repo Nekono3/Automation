@@ -11,9 +11,16 @@ from app.models.user import User
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.customer import Customer
-from app.schemas.conversation import ConversationRead, ConversationUpdate, ConversationModeUpdate
+from app.schemas.conversation import (
+    ConversationRead,
+    ConversationUpdate,
+    ConversationModeUpdate,
+    GlobalAIModeUpdate,
+    GlobalAIModeRead,
+)
 from app.schemas.message import MessageRead
 from app.services.conversation_service import ConversationService
+from app.services.setting_service import SettingService
 from app.integrations.instagram.client import InstagramClient
 
 router = APIRouter(prefix="/api/conversations", tags=["Conversations"])
@@ -21,6 +28,37 @@ router = APIRouter(prefix="/api/conversations", tags=["Conversations"])
 
 class OperatorMessage(BaseModel):
     text: str
+
+
+@router.get("/global-ai", response_model=GlobalAIModeRead)
+async def get_global_ai_mode(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieves current global AI auto-responder status and stats."""
+    return await SettingService.get_global_ai_state(db)
+
+
+@router.post("/global-ai", response_model=GlobalAIModeRead)
+async def update_global_ai_mode(
+    payload: GlobalAIModeUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Globally controls the AI chatbot across Instagram and WhatsApp.
+    Allows switching all chats to AI Chatbot or Consultant (Human).
+    """
+    try:
+        return await SettingService.set_global_ai_mode(
+            db=db,
+            mode=payload.mode,
+            channel=payload.channel,
+            apply_to_existing=payload.apply_to_existing,
+            user_id=current_user.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get("", response_model=List[ConversationRead])

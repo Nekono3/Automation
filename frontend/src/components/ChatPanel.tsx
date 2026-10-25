@@ -173,11 +173,60 @@ export function ChatPanel({
             {conversation.mode === "ai"
               ? "AI-ассистент ведёт диалог"
               : conversation.mode === "human"
-                ? "Вы отвечаете студенту"
+                ? "Вы отвечаете студенту (Консультант)"
                 : "Автоответы на паузе"}
           </span>
         </span>
-        <label className="mode-select">
+
+        {/* Per-chat Quick Mode Buttons */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            disabled={modeLoading || sending}
+            onClick={() => void changeMode("ai")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer border ${
+              conversation.mode === "ai"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-300 shadow-sm"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+            title="Переключить этот диалог на AI-ассистента"
+          >
+            <Bot size={13} className={conversation.mode === "ai" ? "text-emerald-600" : "text-slate-400"} />
+            <span>AI-чат-бот</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={modeLoading || sending}
+            onClick={() => void changeMode("human")}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer border ${
+              conversation.mode === "human"
+                ? "bg-blue-50 text-[#283876] border-blue-300 shadow-sm"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+            title="Переключить этот диалог на консультанта"
+          >
+            <UserRound size={13} className={conversation.mode === "human" ? "text-[#283876]" : "text-slate-400"} />
+            <span>Консультант</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={modeLoading || sending}
+            onClick={() => void changeMode("paused")}
+            className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 transition-all cursor-pointer border ${
+              conversation.mode === "paused"
+                ? "bg-amber-50 text-amber-700 border-amber-300 shadow-sm"
+                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+            }`}
+            title="Поставить диалог на паузу"
+          >
+            <Pause size={12} className={conversation.mode === "paused" ? "text-amber-600" : "text-slate-400"} />
+          </button>
+        </div>
+
+        {/* Existing Dropdown preserved */}
+        <label className="mode-select hidden sm:flex">
           <span className="sr-only">Режим ответа</span>
           <select
             value={conversation.mode}

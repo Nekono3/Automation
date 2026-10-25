@@ -67,7 +67,14 @@ class ConversationService:
         conversation_id: int,
         load_messages: bool = True,
     ) -> Optional[Conversation]:
-        query = select(Conversation).where(Conversation.id == conversation_id).options(selectinload(Conversation.customer))
+        query = (
+            select(Conversation)
+            .where(Conversation.id == conversation_id)
+            .options(
+                selectinload(Conversation.customer),
+                selectinload(Conversation.whatsapp_account),
+            )
+        )
         if load_messages:
             query = query.options(selectinload(Conversation.messages))
         result = await db.execute(query)
@@ -106,8 +113,7 @@ class ConversationService:
         )
         db.add(audit)
         await db.commit()
-        await db.refresh(conversation)
-        return conversation
+        return await ConversationService.get_by_id(db, conversation_id, load_messages=True)
 
     @staticmethod
     async def record_message(

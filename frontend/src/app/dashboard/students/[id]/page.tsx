@@ -57,7 +57,7 @@ export default function StudentDossier({ params }: { params: Promise<{id:string}
   }
   const totals: Record<string,{income:number;expense:number}> = {};
   for (const t of data?.transactions || []) if (!t.voided_at) { const bucket = totals[t.currency] ||= {income:0,expense:0}; bucket[t.kind] += Number(t.amount); }
-  return <div className="company-stack">
+  return <div className="company-page company-stack">
     <div><Link className="company-button" href="/dashboard/students"><ArrowLeft size={16} aria-hidden="true" />Все ученики</Link></div>
     {error && <DataError message={error} onRetry={load} />}
     {loading ? <Loading /> : data && <>

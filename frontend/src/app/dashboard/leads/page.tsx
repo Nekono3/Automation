@@ -42,7 +42,7 @@ export default function LeadsPage() {
     } catch (e) { setFormError(errorText(e)); } finally { setSaving(false); }
   }
   const selected = editing && editing !== 'new' ? editing : null;
-  return <div className="company-stack">
+  return <div className="company-page company-stack">
     <PageHeader eyebrow="ПРОДАЖИ" title="База лидов" description="Контакты из переписок и ручные заявки: категории, ответственные и этапы работы."><Link className="company-button" href="/dashboard/customers">Контакты и переписки</Link><button className="company-button primary" onClick={() => { setFormError(''); setEditing('new'); }}><Plus size={16} aria-hidden="true" />Добавить лид</button></PageHeader>
     <div className="company-toolbar">
       <Field label="Поиск"><input value={search} onChange={e => { setSearch(e.target.value); setOffset(0); }} placeholder="Имя, телефон, email" /></Field>

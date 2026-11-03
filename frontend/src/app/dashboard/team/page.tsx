@@ -43,7 +43,7 @@ export default function TeamPage() {
   }
   const filtered = results.filter(r => !department || metrics.find(m => m.id === r.metric_id)?.department === department);
   const selected = modal && typeof modal === 'object' ? modal : null;
-  return <div className="company-stack">
+  return <div className="company-page company-stack">
     <PageHeader eyebrow="КОМАНДА" title="Сотрудники и KPI" description="Индивидуальные цели по должностям и отделам. Результаты и активность за выбранный месяц."><Link className="company-button" href="/dashboard/kpi">Архив KPI продавцов</Link>{canManage && <><button className="company-button" onClick={() => { setFormError(''); setModal('metric'); }}>Новый показатель</button><button className="company-button primary" onClick={() => { setFormError(''); setModal('result'); }}><Plus size={16} aria-hidden="true" />Задать план / факт</button></>}</PageHeader>
     <div className="company-toolbar">
       <Field label="Месяц"><input type="month" value={period} required onChange={e => setPeriod(e.target.value)} /></Field>

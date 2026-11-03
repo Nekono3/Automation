@@ -62,7 +62,7 @@ function Finance() {
     } catch (e) { setFormError(errorText(e)); } finally { setSaving(false); }
   }
   if (!canManage) return <Notice>Финансовый модуль доступен администратору и РОП.</Notice>;
-  return <div className="company-stack">
+  return <div className="company-page company-stack">
     <PageHeader eyebrow="УПРАВЛЕНИЕ КОМПАНИЕЙ" title="Финансы" description="Доходы, расходы и прибыль. Каждая валюта учитывается отдельно.">
       <button className="company-button" onClick={() => open('category')}>Категория</button>
       <button className="company-button primary" onClick={() => open('transaction')}><Plus size={16} aria-hidden="true" />Новая операция</button>

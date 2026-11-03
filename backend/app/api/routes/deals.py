@@ -67,7 +67,7 @@ async def update_deal_stage(
     current_user: User = Depends(get_current_user),
 ):
     """Update deal stage on the Kanban board."""
-    deal = await DealService.update_stage(db, deal_id, payload)
+    deal = await DealService.update_stage(db, deal_id, payload, actor_id=current_user.id)
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
     return deal

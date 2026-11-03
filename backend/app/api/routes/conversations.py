@@ -164,6 +164,7 @@ async def send_operator_message(
         channel=channel,
         direction="outbound",
         sender_type="employee",
+        extra_data={"user_id": current_user.id},
         text=payload.text,
         status="sent"
     )

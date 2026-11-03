@@ -5,6 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
+from app.models.company import AdmissionLink
+from app.api.routes.company import require_management
+from sqlalchemy import select
 from app.schemas.university_program import (
     UniversityProgramCreate,
     UniversityProgramUpdate,
@@ -25,6 +28,7 @@ async def list_programs(
     faculty: Optional[str] = Query(None, description="Filter by faculty name"),
     degree_level: Optional[str] = Query(None, description="Filter by degree level"),
     language: Optional[str] = Query(None, description="Filter by language"),
+    country: Optional[str] = Query(None, description="Filter by country"),
     sort_by: str = Query("name", description="Sorting: 'name', 'university', 'fee_asc', 'fee_desc'"),
     skip: int = Query(0, ge=0),
     limit: int = Query(200, ge=1, le=1000),
@@ -39,6 +43,7 @@ async def list_programs(
         faculty=faculty,
         degree_level=degree_level,
         language=language,
+        country=country,
         skip=skip,
         limit=limit,
         sort_by=sort_by,
@@ -107,6 +112,8 @@ async def delete_program(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a program from catalog."""
+    if await db.scalar(select(AdmissionLink.id).where(AdmissionLink.program_id == program_id).limit(1)):
+        raise HTTPException(409, "Программа связана с учеником. Сначала измените привязку в его карточке")
     deleted = await UniversityProgramService.delete_program(session=db, program_id=program_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Program not found")
@@ -133,5 +140,8 @@ async def sync_from_spreadsheet(
     current_user: User = Depends(get_current_user),
 ):
     """Re-sync programs from official Google Sheet export."""
+    require_management(current_user)
+    if force and await db.scalar(select(AdmissionLink.id).where(AdmissionLink.program_id.is_not(None)).limit(1)):
+        raise HTTPException(409, "Полная перезапись каталога заблокирована: программы связаны с учениками")
     seeded = await UniversityProgramService.seed_default_programs(session=db, force_reload=force)
     return {"status": "success", "seeded_programs": seeded}

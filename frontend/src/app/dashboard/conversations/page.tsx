@@ -13,6 +13,7 @@ import { AlertCircle, Bot, Inbox, RefreshCw, UserRound, CheckCircle2, Sparkles, 
 function ConversationsContent() {
   const searchParams = useSearchParams();
   const targetCustomerId = searchParams.get("customer_id");
+  const targetWhatsAppAccount = searchParams.get("whatsapp_account_id");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [waAccounts, setWaAccounts] = useState<WhatsAppAccount[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -40,7 +41,7 @@ function ConversationsContent() {
   const sync = useCallback(async () => {
     try {
       const [data, accounts, globalAi] = await Promise.all([
-        api.getConversations(),
+        api.getConversations(targetWhatsAppAccount ? { whatsapp_account_id: targetWhatsAppAccount } : undefined),
         api.getWhatsAppAccounts().catch(() => []),
         api.getGlobalAIMode().catch(() => null),
       ]);
@@ -64,7 +65,7 @@ function ConversationsContent() {
     } finally {
       setLoading(false);
     }
-  }, [targetCustomerId]);
+  }, [targetCustomerId, targetWhatsAppAccount]);
 
   useEffect(() => {
     const start = setTimeout(() => void sync(), 0);

@@ -3,10 +3,13 @@ from typing import Optional, List
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import insert
 
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.models.audit import AuditLog
+from app.models.company import LeadRecord
+from app.models.user import User
 
 
 class ConversationService:
@@ -167,6 +170,17 @@ class ConversationService:
                 conversation.unread_count += 1
             else:
                 conversation.unread_count = 0  # reset unread when reply is sent
+
+        if direction == "inbound":
+            owner = None
+            if conversation and conversation.whatsapp_account_id:
+                owners = (await db.scalars(select(User.id).where(
+                    User.whatsapp_account_id == conversation.whatsapp_account_id,
+                    User.is_active.is_(True)).limit(2))).all()
+                if len(owners) == 1:
+                    owner = owners[0]
+            await db.execute(insert(LeadRecord).values(customer_id=customer_id, assigned_user_id=owner)
+                             .on_conflict_do_nothing(index_elements=["customer_id"]))
 
         await db.commit()
         await db.refresh(message)

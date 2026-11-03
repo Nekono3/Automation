@@ -13,6 +13,8 @@ import {
   School,
   TrendingUp,
   ClipboardCheck,
+  Wallet,
+  Target,
   LogOut,
   ChevronRight,
   Menu,
@@ -27,10 +29,13 @@ const navigation = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Обзор" },
   { href: "/dashboard/conversations", icon: Inbox, label: "Входящие" },
   { href: "/dashboard/customers", icon: Users, label: "Лиды и контакты" },
+  { href: "/dashboard/leads", icon: Users, label: "База лидов" },
   { href: "/dashboard/students", icon: ClipboardCheck, label: "Студенты" },
   { href: "/dashboard/pipeline", icon: GraduationCap, label: "Поступления" },
   { href: "/dashboard/programs", icon: School, label: "Университеты" },
   { href: "/dashboard/kpi", icon: TrendingUp, label: "KPI Продавцов" },
+  { href: "/dashboard/team", icon: Target, label: "Сотрудники и KPI" },
+  { href: "/dashboard/finance", icon: Wallet, label: "Финансы" },
   { href: "/dashboard/bookings", icon: CalendarDays, label: "Консультации" },
   { href: "/dashboard/automations", icon: Zap, label: "Автоматизации" },
   { href: "/dashboard/whatsapp", icon: WhatsAppIcon, label: "WhatsApp" },
@@ -63,7 +68,7 @@ export default function DashboardLayout({
 
   const filteredNav = navigation.filter((item) => {
     if (userRole === "manager" || userRole === "mentor") {
-      if (item.href === "/dashboard/automations" || item.href === "/dashboard/whatsapp") return false;
+      if (["/dashboard/automations", "/dashboard/whatsapp", "/dashboard/finance"].includes(item.href)) return false;
     }
     return true;
   });

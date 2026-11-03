@@ -53,3 +53,5 @@ Thumbs.db
 
 # Docker
 postgres_data/
+# Authenticated student document storage
+backend/private_documents/

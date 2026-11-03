@@ -127,6 +127,7 @@ from app.api.routes.university_programs import router as programs_router
 from app.api.routes.seller_kpi import router as kpi_router
 from app.api.routes.enrolled_students import router as enrolled_students_router
 from app.api.routes.whatsapp import router as whatsapp_router
+from app.api.routes.company import router as company_router
 
 app.include_router(conversations_router)
 app.include_router(customers_router)
@@ -140,6 +141,7 @@ app.include_router(programs_router)
 app.include_router(kpi_router)
 app.include_router(enrolled_students_router)
 app.include_router(whatsapp_router, prefix="/api")
+app.include_router(company_router)
 
 
 # Mount Static Files (PDF guides & uploaded media)

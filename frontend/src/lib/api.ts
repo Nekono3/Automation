@@ -40,10 +40,35 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      const error = await response.json().catch(() => null);
+      throw new Error(typeof error?.detail === 'string' ? error.detail : `Ошибка запроса (${response.status})`);
     }
 
+    if (response.status === 204) return undefined as T;
     return response.json();
+  }
+
+  company<T>(path: string, options?: RequestInit): Promise<T> {
+    return this.request<T>(`/company${path}`, options);
+  }
+
+  async uploadStudentDocument(studentId: number, file: File): Promise<void> {
+    const response = await fetch(`${getApiUrl()}/api/company/students/${studentId}/documents?name=${encodeURIComponent(file.name)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${this.getToken()}`, 'Content-Type': file.type || 'application/octet-stream' }, body: file,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      throw new Error(error?.detail || 'Не удалось загрузить документ');
+    }
+  }
+
+  async downloadStudentDocument(id: number, name: string): Promise<void> {
+    const response = await fetch(`${getApiUrl()}/api/company/documents/${id}/download`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
+    if (!response.ok) throw new Error('Не удалось скачать документ');
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = url; link.download = name; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async login(email: string, password: string):Promise<LoginResponse> {
@@ -237,6 +262,7 @@ class ApiClient {
 
   // University Programs Catalog
   async getPrograms(params?: {
+    country?: string;
     search?: string;
     university?: string;
     faculty?: string;

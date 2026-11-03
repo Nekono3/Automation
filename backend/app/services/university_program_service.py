@@ -399,6 +399,7 @@ class UniversityProgramService:
         faculty: Optional[str] = None,
         degree_level: Optional[str] = None,
         language: Optional[str] = None,
+        country: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
         sort_by: str = "name",
@@ -428,6 +429,8 @@ class UniversityProgramService:
 
         if language and language != "all":
             stmt = stmt.where(UniversityProgram.language == language)
+        if country and country != "all":
+            stmt = stmt.where(UniversityProgram.country == country)
 
         if sort_by == "fee_asc":
             stmt = stmt.order_by(UniversityProgram.tuition_fee_usd.asc().nulls_last())

@@ -4,6 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.api.deps import get_current_user
+from app.api.routes.company import audit, require_management
+from app.models.company import AdmissionLink, FinanceTransaction, StudentDocument
+from sqlalchemy import select, func
 from app.models.user import User
 from app.schemas.enrolled_student import (
     EnrolledStudentCreate,
@@ -82,6 +85,12 @@ async def update_enrolled_student(
     current_user: User = Depends(get_current_user),
 ):
     """Update process stage, next action, risk, or financial details of a student."""
+    previous = await EnrolledStudentService.get_by_id(session=db, student_id=student_id)
+    if not previous:
+        raise HTTPException(status_code=404, detail="Student not found")
+    changes = {key: {"before": getattr(previous, key), "after": value}
+               for key, value in data.model_dump(exclude_unset=True).items() if getattr(previous, key) != value}
+    audit(db, current_user, "update", "enrolled_student", student_id, changes)
     updated = await EnrolledStudentService.update_student(session=db, student_id=student_id, data=data)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
@@ -95,6 +104,10 @@ async def delete_enrolled_student(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a student from tracker."""
+    require_management(current_user)
+    for model in (AdmissionLink, FinanceTransaction, StudentDocument):
+        if await db.scalar(select(func.count()).select_from(model).where(model.student_id == student_id)):
+            raise HTTPException(409, "Ученик связан с CRM, платежами или документами. Удаление заблокировано")
     deleted = await EnrolledStudentService.delete_student(session=db, student_id=student_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
@@ -108,5 +121,10 @@ async def sync_students_spreadsheet(
     current_user: User = Depends(get_current_user),
 ):
     """Re-sync enrolled students from Google Sheets process and finance sheets."""
+    require_management(current_user)
+    if force:
+        for model in (AdmissionLink, FinanceTransaction, StudentDocument):
+            if await db.scalar(select(func.count()).select_from(model)):
+                raise HTTPException(409, "Полная перезапись из Excel заблокирована: есть связанные записи. Используйте карточки учеников")
     seeded = await EnrolledStudentService.seed_default_students(session=db, force_reload=force)
     return {"status": "success", "seeded_students": seeded}

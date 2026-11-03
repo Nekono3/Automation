@@ -38,6 +38,7 @@ export default function UniversityProgramsPage() {
   // Search & Filters
   const [search, setSearch] = useState("");
   const [selectedUni, setSelectedUni] = useState<string>("all");
+  const [selectedCountry, setSelectedCountry] = useState("all");
   const [selectedDegree, setSelectedDegree] = useState<string>("all");
   const [selectedLang, setSelectedLang] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("name");
@@ -84,6 +85,7 @@ export default function UniversityProgramsPage() {
         api.getPrograms({
           search,
           university: selectedUni,
+          country: selectedCountry,
           degree_level: selectedDegree,
           language: selectedLang,
           sort_by: sortBy,
@@ -99,7 +101,7 @@ export default function UniversityProgramsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, selectedUni, selectedDegree, selectedLang, sortBy]);
+  }, [search, selectedUni, selectedCountry, selectedDegree, selectedLang, sortBy]);
 
   useEffect(() => {
     const timer = setTimeout(() => void fetchData(), 250);
@@ -333,7 +335,7 @@ export default function UniversityProgramsPage() {
           >
             Все университеты ({stats?.total_programs || 0})
           </button>
-          {universities.map((uni) => (
+          {universities.filter(uni => selectedCountry === "all" || uni.country === selectedCountry).map((uni) => (
             <button
               key={uni.name}
               onClick={() => setSelectedUni(uni.name)}
@@ -376,6 +378,9 @@ export default function UniversityProgramsPage() {
 
         {/* Filter Dropdowns */}
         <div className="flex flex-wrap items-center gap-2">
+          <label className="company-field"><span>Страна</span><select value={selectedCountry} onChange={e => { setSelectedCountry(e.target.value); setSelectedUni("all"); }}>
+            <option value="all">Все страны</option>{[...new Set(universities.map(uni => uni.country))].map(country => <option key={country}>{country}</option>)}
+          </select></label>
           {/* Degree Filter */}
           <div className="relative">
             <select

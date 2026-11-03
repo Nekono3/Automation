@@ -260,7 +260,7 @@ class MistralConsultingAgent:
             # Name extraction
             extracted_name = None
             name_pattern_1 = re.search(
-                r"(?:меня зовут|мое имя|менин атым|атым|зовут|я)\s*:?\s*([А-Яа-яЁёA-Za-z\-]+(?:\s+[А-Яа-яЁёA-Za-z\-]+)?)",
+                r"(?<!\w)(?:меня зовут|мо[её] имя|менин атым|атым|зовут)\s*:?\s*([А-Яа-яЁёA-Za-z\-]+(?:\s+[А-Яа-яЁёA-Za-z\-]+)?)",
                 incoming_message,
                 re.IGNORECASE,
             )

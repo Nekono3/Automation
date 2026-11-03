@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.deal import Deal, DocumentChecklist
 from app.models.customer import Customer
 from app.schemas.deal import DealCreate, DealUpdate, DealStageUpdate
+from app.services.admission_workflow import ensure_student, sync_student_stage
+from app.models.company import LeadRecord
+from sqlalchemy.dialects.postgresql import insert
 
 logger = logging.getLogger("insta.deals")
 
@@ -63,11 +66,11 @@ class DealService:
             notes=data.notes,
         )
         db.add(deal)
-        await db.commit()
-        await db.refresh(deal)
+        await db.flush()
 
         # Seed standard checklists if pipeline is ADMISSION
         if deal.pipeline_type == "ADMISSION":
+            await ensure_student(db, deal)
             standard_docs = [
                 "Заграничный паспорт",
                 "Табель оценок (10-11 класс / диплом)",
@@ -79,9 +82,7 @@ class DealService:
             for doc_name in standard_docs:
                 chk = DocumentChecklist(deal_id=deal.id, document_name=doc_name, status="NOT_SUBMITTED")
                 db.add(chk)
-            await db.commit()
-            await db.refresh(deal)
-
+        await db.commit()
         return await DealService.get_by_id(db, deal.id)
 
     @staticmethod
@@ -89,6 +90,7 @@ class DealService:
         db: AsyncSession,
         deal_id: int,
         data: DealStageUpdate,
+        actor_id: Optional[int] = None,
     ) -> Optional[Deal]:
         deal = await DealService.get_by_id(db, deal_id)
         if not deal:
@@ -100,7 +102,9 @@ class DealService:
             deal.lost_reason = data.lost_reason
 
         # Automatic transition: If SALES pipeline deal hits CLOSED_WON, auto-create card in ADMISSION pipeline!
-        if deal.pipeline_type == "SALES" and data.stage == "CLOSED_WON" and old_stage != "CLOSED_WON":
+        if (deal.pipeline_type == "SALES" and data.stage == "CLOSED_WON" and old_stage != "CLOSED_WON"
+                and not await db.scalar(select(Deal.id).where(Deal.customer_id == deal.customer_id,
+                                                              Deal.pipeline_type == "ADMISSION").limit(1))):
             logger.info("Deal #%d closed won! Auto-creating ADMISSION pipeline deal...", deal.id)
             admission_deal = Deal(
                 title=f"Поступление: {deal.title}",
@@ -111,9 +115,11 @@ class DealService:
                 target_degree=deal.target_degree,
                 amount=deal.amount,
                 currency=deal.currency,
+                assigned_user_id=deal.assigned_user_id,
             )
             db.add(admission_deal)
             await db.flush()
+            await ensure_student(db, admission_deal)
 
             standard_docs = [
                 "Заграничный паспорт",
@@ -126,6 +132,14 @@ class DealService:
             for doc_name in standard_docs:
                 db.add(DocumentChecklist(deal_id=admission_deal.id, document_name=doc_name, status="NOT_SUBMITTED"))
 
+        if deal.pipeline_type == "ADMISSION":
+            await sync_student_stage(db, deal, actor_id)
+        elif deal.pipeline_type == "SALES":
+            status_map = {"NEW_LEAD": "new", "AI_QUALIFIED": "qualified", "CLOSED_WON": "won", "CLOSED_LOST": "lost"}
+            lead_status = status_map.get(deal.stage, "contacted")
+            await db.execute(insert(LeadRecord).values(customer_id=deal.customer_id,
+                assigned_user_id=deal.assigned_user_id, status=lead_status).on_conflict_do_update(
+                    index_elements=["customer_id"], set_={"status": lead_status}))
         await db.commit()
         return await DealService.get_by_id(db, deal.id)
 

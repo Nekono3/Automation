@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { EnrolledStudent, EnrolledStudentsStats } from "@/lib/types";
 import {
@@ -477,7 +478,7 @@ export default function EnrolledStudentsPage() {
                     {/* Full Name */}
                     <td className="px-5 py-3.5">
                       <div className="font-bold text-slate-900 flex items-center gap-2">
-                        <span>{stu.full_name}</span>
+                        <Link href={`/dashboard/students/${stu.id}`} className="section-link">{stu.full_name}</Link>
                         {stu.is_completed && (
                           <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
                             {stu.status_raw || "Бүттү"}

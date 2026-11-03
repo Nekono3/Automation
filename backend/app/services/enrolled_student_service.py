@@ -174,6 +174,18 @@ class EnrolledStudentService:
             return None
 
         update_dict = data.model_dump(exclude_unset=True)
+        if "process_stage" in update_dict or "is_completed" in update_dict:
+            from app.models.company import AdmissionLink
+            from app.models.deal import Deal
+            from app.services.admission_workflow import STAGES
+            link = await session.scalar(select(AdmissionLink).where(AdmissionLink.student_id == student_id))
+            if link and link.deal_id:
+                deal = await session.get(Deal, link.deal_id)
+                stage = next((code for code, label in STAGES.items() if label == update_dict.get("process_stage")), None)
+                if stage:
+                    deal.stage = stage
+                if update_dict.get("is_completed") is True:
+                    deal.stage = "ENROLLED_AND_DEPARTED"
         for k, v in update_dict.items():
             setattr(student, k, v)
 

@@ -124,12 +124,9 @@ class UserService:
                 db.add(user)
                 count += 1
             else:
-                user.role = staff["role"]
-                user.full_name = staff["full_name"]
-                if staff["whatsapp_account_id"] is not None:
-                    user.whatsapp_account_id = staff["whatsapp_account_id"]
-                user.hashed_password = hash_password(staff["password"])
-                user.is_active = True
+                # Existing credentials, assignments and access settings are authoritative.
+                # Restarting the application must not reset staff accounts.
+                continue
 
         await db.commit()
         return count

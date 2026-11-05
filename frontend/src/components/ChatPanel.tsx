@@ -106,7 +106,9 @@ export function ChatPanel({
     setError("");
     try {
       if (conversation.mode !== "human") await onModeChange("human");
-      await api.sendMessage(conversation.id, input.trim());
+      const message = await api.sendMessage(conversation.id, input.trim());
+      onMessageSent();
+      if (message.status !== "sent") throw new Error("delivery_failed");
       setInput("");
       onMessageSent();
     } catch {
@@ -337,6 +339,8 @@ export function ChatPanel({
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
+                      {!inbound && message.status === "failed" && <span role="status">Не доставлено</span>}
+                      {!inbound && message.status === "pending" && <span role="status">Ожидает отправки</span>}
                       {!inbound && message.status === "read" && (
                         <CheckCheck size={13} aria-label="Прочитано" />
                       )}

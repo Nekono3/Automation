@@ -1,0 +1,11 @@
+# Communication security and remaining reliability work
+
+Bridge binds loopback by default and requires BRIDGE_API_TOKEN on **all** routes, including QR/status/send/restart/logout. Backend bridge calls add this token; it is never supplied to the browser. Bridge→CRM webhook uses a separate BRIDGE_WEBHOOK_TOKEN. Both secrets must be independent strong values and deployed together. The CRM account screen, restricted by communication.manage_accounts, remains the authorized QR interface. Old unauthenticated standalone QR pages are intentionally no longer an access path.
+
+`account_1`, `account_2`, `account_3` sessions and their auth directories are preserved. A send must specify the exact account; absent, unknown or disconnected accounts fail. Python does not fall back from bridge to Cloud API. Explicit Cloud accounts use `cloud:<phone_number_id>` and must match configured Cloud credentials. Inbound Cloud metadata chooses the registered receiving account. An unrecognized bridge account is rejected rather than attached to the main account.
+
+Manual and AI replies share message_delivery.py: persist pending, contact the correct provider, then persist sent only with a provider message ID. Failures remain failed; AI failure hands off to human mode. The UI retains unsent text. Conversation authorization applies to view, history, send, update and mode changes. Booking notifications also use authorized existing conversations and this delivery path.
+
+Meta HMAC is required in every environment. Tests sign synthetic payloads rather than disabling verification. Existing comment-to-DM code is retained and tested for one private reply on sequential duplicate events. Actual Meta app permissions, token scopes and private-reply limits require a staging provider test; no live-provider success is claimed.
+
+Remaining: durable inbox/outbox workers, crash recovery, concurrent webhook claiming, scoped external IDs, bounded retry policy, delivery receipts, internal notes/tasks and delivery reconciliation. Do not label the current in-process BackgroundTasks implementation a durable queue. Existing deleted-message retention behavior is preserved pending an approved company retention/deletion policy.

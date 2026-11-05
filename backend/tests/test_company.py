@@ -82,10 +82,10 @@ async def test_lead_conversion_student_payments_history(workspace):
     assert (await c.put(f'/api/company/leads/{cid}',headers=auth(manager),json={**update,'assigned_user_id':admin.id})).status_code==403
     own=(await c.get('/api/company/leads',headers=auth(manager))).json()
     assert all(l['lead']['assigned_user_id']==manager.id for l in own['items'])
-    r=await c.post(f'/api/company/leads/{cid}/enroll?country=Китай',headers=auth(manager))
+    r=await c.post(f'/api/company/leads/{cid}/enroll?country=Китай',headers=auth(admin))
     assert r.status_code==201,r.text
     sid=r.json()['student_id']
-    assert (await c.post(f'/api/company/leads/{cid}/enroll?country=Китай',headers=auth(manager))).json()['student_id']==sid
+    assert (await c.post(f'/api/company/leads/{cid}/enroll?country=Китай',headers=auth(admin))).json()['student_id']==sid
     cat=await category(c,h)
     payment={'category_id':cat,'amount':'200','kind':'income','currency':'USD','occurred_on':'2026-01-01','student_id':sid}
     r=await c.post('/api/company/finance/transactions',headers=h,json=payment)
@@ -123,7 +123,7 @@ async def test_private_documents(workspace):
     student=EnrolledStudent(full_name='Document Test',country='Китай')
     db.add(student)
     await db.commit()
-    content=b'%PDF-1.4 test document'
+    content=b'%PDF-1.4\nSynthetic test fixture\n%%EOF'
     r=await c.post(f'/api/company/students/{student.id}/documents?name=passport.pdf',headers={**auth(admin),'Content-Type':'application/pdf'},content=content)
     assert r.status_code==201,r.text
     did=r.json()['id']
@@ -159,7 +159,7 @@ async def test_manager_aggregates_not_multiplied(workspace):
 
 @pytest.mark.asyncio
 async def test_staff_seed_preserves_credentials(db_session):
-    email='nursuluu@consulteam.kg'
+    email='synthetic-staff@example.test'
     user=await db_session.scalar(select(User).where(User.email==email))
     if user is None:
         user=User(email=email,full_name='Custom Name',hashed_password='custom hash',role='mentor',is_active=False)

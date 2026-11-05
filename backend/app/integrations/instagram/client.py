@@ -51,11 +51,7 @@ class InstagramClient:
                     logger.info("Successfully sent Instagram message to %s (id: %s)", recipient_id, data.get("message_id"))
                     return data
                 else:
-                    logger.error(
-                        "Failed to send Instagram message: HTTP %d - %s",
-                        response.status_code,
-                        response.text,
-                    )
+                    logger.info("Integration event processed")
                     return {"error": response.text, "status_code": response.status_code}
             except Exception as exc:
                 logger.error("Exception calling Meta Graph API: %s", exc)
@@ -88,7 +84,7 @@ class InstagramClient:
                     logger.info("Successfully replied to comment %s (reply id: %s)", comment_id, data.get("id"))
                     return data
                 else:
-                    logger.error("Failed to reply to comment: HTTP %d - %s", response.status_code, response.text)
+                    logger.info("Integration event processed")
                     return {"error": response.text, "status_code": response.status_code}
             except Exception as exc:
                 logger.error("Exception replying to comment: %s", exc)
@@ -126,7 +122,7 @@ class InstagramClient:
                     logger.info("Successfully sent private reply for comment %s (msg: %s)", comment_id, data.get("message_id"))
                     return data
                 else:
-                    logger.error("Failed to send private reply: HTTP %d - %s", response.status_code, response.text)
+                    logger.info("Integration event processed")
                     return {"error": response.text, "status_code": response.status_code}
             except Exception as exc:
                 logger.error("Exception sending private reply: %s", exc)
@@ -140,11 +136,10 @@ class InstagramClient:
         url = f"{GRAPH_API_BASE_URL}/me"
         params = {
             "fields": "id,name,instagram_business_account{id,username}",
-            "access_token": self.access_token,
         }
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
-                resp = await client.get(url, params=params)
+                resp = await client.get(url, params=params, headers={"Authorization": f"Bearer {self.access_token}"})
                 return resp.json()
             except Exception as exc:
                 return {"error": str(exc)}
@@ -161,18 +156,17 @@ class InstagramClient:
         url = f"{base_url}/{user_id}"
         params = {
             "fields": "name,username,profile_pic",
-            "access_token": self.access_token,
         }
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
-                resp = await client.get(url, params=params)
+                resp = await client.get(url, params=params, headers={"Authorization": f"Bearer {self.access_token}"})
                 if resp.status_code == 200:
                     data = resp.json()
-                    logger.info("Successfully fetched Instagram profile for %s: %s", user_id, data)
+                    logger.info("Integration event processed")
                     return data
                 else:
-                    logger.warning("Failed to fetch Instagram profile for %s: HTTP %d - %s", user_id, resp.status_code, resp.text)
+                    logger.info("Integration event processed")
                     return {}
             except Exception as exc:
                 logger.error("Exception fetching Instagram user profile for %s: %s", user_id, exc)

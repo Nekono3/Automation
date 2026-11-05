@@ -52,6 +52,15 @@ class EnrolledStudentUpdate(BaseModel):
 
 
 class EnrolledStudentRead(EnrolledStudentBase):
+    contract_amount: Optional[str] = None
+    paid_amount: Optional[str] = None
+    remaining_amount: Optional[str] = None
+    next_payment_condition: Optional[str] = None
+    last_payment_date: Optional[str] = None
+    finance_comment: Optional[str] = None
+    seller_commission_paid: Optional[bool] = None
+    mentor_commission_paid: Optional[bool] = None
+    full_payment_received: Optional[bool] = None
     id: int
     created_at: datetime
     updated_at: datetime

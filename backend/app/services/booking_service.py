@@ -152,12 +152,17 @@ class BookingService:
         status: Optional[str] = None,
         skip: int = 0,
         limit: int = 50,
+            user=None,
     ) -> List[Booking]:
         query = (
             select(Booking)
             .options(selectinload(Booking.service), selectinload(Booking.customer))
             .order_by(Booking.created_at.desc())
         )
+        if user is not None:
+            from app.models.customer import Customer
+            from app.core.permissions import customer_clause
+            query=query.where(Booking.customer_id.in_(select(Customer.id).where(await customer_clause(db,user))))
         if customer_id:
             query = query.where(Booking.customer_id == customer_id)
         if status:

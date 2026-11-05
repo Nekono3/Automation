@@ -6,7 +6,6 @@ from app.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.company import AdmissionLink
-from app.api.routes.company import require_management
 from sqlalchemy import select
 from app.schemas.university_program import (
     UniversityProgramCreate,
@@ -140,7 +139,6 @@ async def sync_from_spreadsheet(
     current_user: User = Depends(get_current_user),
 ):
     """Re-sync programs from official Google Sheet export."""
-    require_management(current_user)
     if force and await db.scalar(select(AdmissionLink.id).where(AdmissionLink.program_id.is_not(None)).limit(1)):
         raise HTTPException(409, "Полная перезапись каталога заблокирована: программы связаны с учениками")
     seeded = await UniversityProgramService.seed_default_programs(session=db, force_reload=force)

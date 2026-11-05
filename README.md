@@ -1,3 +1,5 @@
+> **Security iteration (2026-11-05):** use [SETUP](docs/development/SETUP.md), [MIGRATIONS](docs/development/MIGRATIONS.md) and [CURRENT_STATE](docs/architecture/CURRENT_STATE.md) for the current startup and access model. Ordinary startup no longer creates tables or default staff. Production release requires the staging/approval procedure. The historical overview below describes the original implementation.
+
 <div align="center">
 
 # 🤖 INSTA CRM &mdash; AI-Powered Multi-Channel Lead & Booking Platform
@@ -69,7 +71,10 @@ flowchart TD
 - **WhatsApp Bridge (`whatsapp-bridge/`):** Dedicated Node.js WebSocket microservice enabling instant WhatsApp communication without heavy third-party fees.
 
 ### 3. Next.js 15 Operational Suite (`frontend/`)
-- Real-time lead progression pipeline (New $ightarrow$ Qualified $ightarrow$ Scheduled $ightarrow$ Won).
+- Real-time lead progression pipeline (New $
+ightarrow$ Qualified $
+ightarrow$ Scheduled $
+ightarrow$ Won).
 - Live omnichannel conversation inspector with manual message override.
 - Analytics charts tracking conversion rates, peak inquiry hours, and channel attribution.
 

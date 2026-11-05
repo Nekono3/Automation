@@ -1,102 +1,34 @@
-import logging
-from typing import Optional, Dict, Any
+"""Explicit provider + account selection. A transport failure never changes accounts."""
+from typing import Optional
 import httpx
-
 from app.config import settings
 
-logger = logging.getLogger("insta.whatsapp.client")
-
-GRAPH_API_VERSION = "v21.0"
-GRAPH_API_BASE_URL = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
-
-
 class WhatsAppClient:
-    """
-    Client for Meta WhatsApp Business Cloud API.
-    Sends text messages and template messages to WhatsApp users.
-    Endpoint: POST https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages
-    """
+    def __init__(self,access_token:Optional[str]=None,phone_number_id:Optional[str]=None):
+        self.access_token=access_token or settings.WHATSAPP_ACCESS_TOKEN
+        self.phone_number_id=phone_number_id or settings.WHATSAPP_PHONE_NUMBER_ID
 
-    def __init__(
-        self,
-        access_token: Optional[str] = None,
-        phone_number_id: Optional[str] = None,
-    ):
-        self.access_token = access_token or settings.WHATSAPP_ACCESS_TOKEN
-        self.phone_number_id = phone_number_id or settings.WHATSAPP_PHONE_NUMBER_ID
-
-    async def send_text_message(
-        self,
-        to_phone: str,
-        text: str,
-        preview_url: bool = False,
-        account_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Sends a plain text message to a WhatsApp user.
-        to_phone must be in international format without '+' (e.g. '15556382752' or '996555123456').
-        """
-        clean_phone = to_phone.replace("+", "").replace(" ", "").replace("-", "")
-
-        # 1. First attempt delivery via local Baileys QR bridge (if connected)
+    async def send_text_message(self,to_phone:str,text:str,preview_url:bool=False,account_id:Optional[str]=None):
+        if not account_id: return {'error':'explicit_account_required'}
+        clean_phone=to_phone.replace('+','').replace(' ','').replace('-','')
+        if account_id.startswith('cloud:'):
+            if account_id != f'cloud:{self.phone_number_id}' or not self.access_token:
+                return {'error':'cloud_account_not_configured'}
+            url=f'https://graph.facebook.com/v21.0/{self.phone_number_id}/messages'
+            headers={'Authorization':f'Bearer {self.access_token}'}
+            payload={'messaging_product':'whatsapp','to':clean_phone,'type':'text','text':{'preview_url':preview_url,'body':text}}
+        else:
+            if not settings.BRIDGE_API_TOKEN: return {'error':'bridge_not_configured'}
+            url=f'{settings.BRIDGE_URL}/send'
+            headers={'Authorization':f'Bearer {settings.BRIDGE_API_TOKEN}'}
+            payload={'account_id':account_id,'to':clean_phone,'text':text}
         try:
-            payload: Dict[str, Any] = {"to": clean_phone, "text": text}
-            if account_id:
-                payload["account_id"] = account_id
-
-            async with httpx.AsyncClient(timeout=8.0) as bridge_client:
-                bridge_resp = await bridge_client.post(
-                    "http://127.0.0.1:3001/send",
-                    json=payload,
-                )
-                if bridge_resp.status_code == 200:
-                    data = bridge_resp.json()
-                    logger.info("Successfully sent WhatsApp message via local QR bridge (%s) to %s (id: %s)", account_id or "default", clean_phone, data.get("message_id"))
-                    return data
-        except Exception as bridge_exc:
-            logger.debug("Local WhatsApp bridge unavailable (%s). Falling back to Cloud API.", bridge_exc)
-
-
-        # 2. Fall back to Meta Cloud API
-        if not self.access_token:
-            logger.warning("WHATSAPP_ACCESS_TOKEN not set. WhatsApp message skipped (mock mode).")
-            return {"mock": True, "to": clean_phone, "text": text}
-
-        url = f"{GRAPH_API_BASE_URL}/{self.phone_number_id}/messages"
-        headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": clean_phone,
-            "type": "text",
-            "text": {
-                "preview_url": preview_url,
-                "body": text,
-            },
-        }
-
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            try:
-                response = await client.post(url, json=payload, headers=headers)
-                if response.status_code == 200:
-                    data = response.json()
-                    message_id = (
-                        data.get("messages", [{}])[0].get("id")
-                        if data.get("messages")
-                        else None
-                    )
-                    logger.info("Successfully sent WhatsApp message to %s (id: %s)", clean_phone, message_id)
-                    return data
-                else:
-                    logger.error(
-                        "Failed to send WhatsApp message: HTTP %d - %s",
-                        response.status_code,
-                        response.text,
-                    )
-                    return {"error": response.text, "status_code": response.status_code}
-            except Exception as exc:
-                logger.error("Exception calling Meta WhatsApp Cloud API: %s", exc)
-                return {"error": str(exc)}
+            async with httpx.AsyncClient(timeout=15) as client:
+                response=await client.post(url,json=payload,headers=headers)
+                if response.status_code!=200: return {'error':'provider_rejected','status_code':response.status_code}
+                result=response.json()
+                if not account_id.startswith('cloud:') and result.get('session_id')!=account_id:
+                    return {'error':'provider_account_mismatch'}
+                return result
+        except (httpx.HTTPError,ValueError):
+            return {'error':'provider_unavailable'}

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Users } from 'lucide-react';
 import { api } from '@/lib/api';
+import {can} from '@/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, EmptyState, DataError } from '@/components/WorkspaceUI';
 import { CompanyModal, Field, Loading, Notice } from '@/components/CompanyUI';
@@ -12,7 +13,7 @@ import { Directory, LeadRow, Page, json, query, statusNames, errorText } from '@
 export default function LeadsPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const management = user?.role === 'admin' || user?.role === 'lead_manager';
+  const management = can(user,'leads.assign');
   const [directory, setDirectory] = useState<Directory>({ users: [], categories: [], countries: [] });
   const [data, setData] = useState<Page<LeadRow>>({ total: 0, items: [] });
   const [search, setSearch] = useState(''); const [status, setStatus] = useState('');
@@ -57,7 +58,7 @@ export default function LeadsPage() {
         <td data-label="Этап"><span>{statusNames[row.lead.status]}<small>{row.lead.category}</small></span></td>
         <td data-label="Ответственный">{directory.users.find(u => u.id === row.lead.assigned_user_id)?.full_name || 'Не назначен'}</td>
         <td data-label="Следующий шаг">{row.lead.next_action || '—'}</td>
-        <td data-label="Управление"><div className="company-toolbar"><button className="company-button" onClick={() => { setFormError(''); setEditing(row); }}>Изменить</button><button className="company-button" onClick={() => { setFormError(''); setEnrolling(row); }}>В ученики</button></div></td>
+        <td data-label="Управление"><div className="company-toolbar"><button className="company-button" onClick={() => { setFormError(''); setEditing(row); }}>Изменить</button>{can(user,'students.create') && <button className="company-button" onClick={() => { setFormError(''); setEnrolling(row); }}>В ученики</button>}</div></td>
       </tr>)}</tbody></table></div>
       <div className="company-pager"><button className="company-button" disabled={offset===0} onClick={() => setOffset(offset-100)}>Назад</button><span>{offset+1}–{Math.min(offset+100,data.total)} из {data.total}</span><button className="company-button" disabled={offset+100>=data.total} onClick={() => setOffset(offset+100)}>Далее</button></div>
     </>)}

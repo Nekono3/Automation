@@ -1,4 +1,5 @@
 from typing import Optional
+import secrets
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +7,9 @@ from app.config import settings
 from app.models.user import User
 from app.schemas.user import UserCreate
 from app.security.passwords import hash_password, verify_password
+
+
+_DUMMY_HASH = hash_password(secrets.token_urlsafe(32))
 
 
 class UserService:
@@ -37,6 +41,7 @@ class UserService:
     async def authenticate(db: AsyncSession, email: str, password: str) -> Optional[User]:
         user = await UserService.get_by_email(db, email)
         if not user or not user.is_active:
+            verify_password(password, _DUMMY_HASH)
             return None
         if not verify_password(password, user.hashed_password):
             return None
@@ -45,6 +50,8 @@ class UserService:
     @staticmethod
     async def seed_initial_admin(db: AsyncSession) -> Optional[User]:
         """Seeds the initial administrator account if no users exist."""
+        if not settings.BOOTSTRAP_ENABLED or not settings.FIRST_ADMIN_PASSWORD:
+            return None
         existing = await db.execute(select(User))
         if existing.scalars().first():
             return None
@@ -53,7 +60,7 @@ class UserService:
             email=settings.FIRST_ADMIN_EMAIL.lower().strip(),
             hashed_password=hash_password(settings.FIRST_ADMIN_PASSWORD),
             full_name="Default Administrator",
-            role="admin",
+            role="director",
             is_active=True,
         )
         db.add(admin)
@@ -63,70 +70,5 @@ class UserService:
 
     @staticmethod
     async def seed_default_staff_users(db: AsyncSession) -> int:
-        """Seeds or updates the 5 default staff accounts with roles and whatsapp bindings."""
-        from app.models.whatsapp_account import WhatsAppAccount
-
-        # Fetch whatsapp accounts map (account_id -> id)
-        wa_result = await db.execute(select(WhatsAppAccount))
-        wa_accounts = wa_result.scalars().all()
-        wa_map = {acc.account_id: acc.id for acc in wa_accounts}
-
-        default_staff = [
-            {
-                "email": "admin@consulteam.kg",
-                "full_name": "Администратор Consulteam",
-                "password": "AdminConsul2026!",
-                "role": "admin",
-                "whatsapp_account_id": None,
-            },
-            {
-                "email": "rop@consulteam.kg",
-                "full_name": "РОП (Главный менеджер)",
-                "password": "RopConsul2026!",
-                "role": "lead_manager",
-                "whatsapp_account_id": wa_map.get("account_1"),
-            },
-            {
-                "email": "nursuluu@consulteam.kg",
-                "full_name": "Nursuluu (Менеджер)",
-                "password": "Nursuluu2026!",
-                "role": "manager",
-                "whatsapp_account_id": wa_map.get("account_2"),
-            },
-            {
-                "email": "manager3@consulteam.kg",
-                "full_name": "Менеджер 3",
-                "password": "Manager3Consul!",
-                "role": "manager",
-                "whatsapp_account_id": wa_map.get("account_3"),
-            },
-            {
-                "email": "mentor@consulteam.kg",
-                "full_name": "Ментор Consulteam",
-                "password": "MentorConsul2026!",
-                "role": "mentor",
-                "whatsapp_account_id": None,
-            },
-        ]
-
-        count = 0
-        for staff in default_staff:
-            user = await UserService.get_by_email(db, staff["email"])
-            if not user:
-                user = User(
-                    email=staff["email"],
-                    hashed_password=hash_password(staff["password"]),
-                    full_name=staff["full_name"],
-                    role=staff["role"],
-                    whatsapp_account_id=staff["whatsapp_account_id"],
-                    is_active=True,
-                )
-                db.add(user)
-                count += 1
-            else:
-                # Existing credentials, assignments and access settings are authoritative.
-                # Restarting the application must not reset staff accounts.
-                continue
-
-        await db.commit()
-        return count
+        """Compatibility hook; staff must be explicitly invited, never seeded."""
+        return 0

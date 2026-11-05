@@ -25,7 +25,7 @@ async def list_bookings(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await BookingService.list_bookings(db, customer_id, status, skip, limit)
+    return await BookingService.list_bookings(db, customer_id, status, skip, limit, user=current_user)
 
 
 @router.get("/{booking_id}", response_model=BookingRead)
@@ -67,7 +67,14 @@ async def confirm_booking(
         
         customer = await db.get(Customer, booking.customer_id)
         if customer:
-            conv, _ = await ConversationService.get_or_create_conversation(db, customer.id)
+            from app.models.conversation import Conversation
+            from sqlalchemy import select
+            from sqlalchemy.orm import selectinload
+            from app.core.permissions import check_conversation
+            conv=await db.scalar(select(Conversation).where(Conversation.customer_id==customer.id)
+                .options(selectinload(Conversation.customer)).order_by(Conversation.last_message_at.desc().nullslast()).limit(1))
+            if not conv:return booking
+            await check_conversation(db,current_user,conv.id)
             date_str = booking.scheduled_at.strftime("%d.%m в %H:%M") if booking.scheduled_at else "в согласованное время"
             name = customer.name or booking.customer_name or "Клиент"
             service_name = booking.service_name_snapshot or "консультация"
@@ -78,19 +85,8 @@ async def confirm_booking(
                 f"Ждём вас на встрече. Если у вас возникнут вопросы или потребуется перенос — просто напишите нам сюда."
             )
             
-            await ConversationService.record_message(
-                db=db,
-                conversation_id=conv.id,
-                customer_id=customer.id,
-                channel=conv.channel,
-                direction="outbound",
-                sender_type="employee",
-                text=confirm_msg,
-            )
-            
-            if customer.instagram_id and not customer.instagram_id.startswith("test"):
-                ig_client = InstagramClient()
-                await ig_client.send_text_message(customer.instagram_id, confirm_msg)
+            from app.services.message_delivery import deliver
+            await deliver(db,conv,confirm_msg,actor_id=current_user.id)
     except Exception as exc:
         import logging
         logging.getLogger("insta.bookings").error("Failed sending confirmation msg to customer: %s", exc)
@@ -117,7 +113,14 @@ async def cancel_booking(
         
         customer = await db.get(Customer, booking.customer_id)
         if customer:
-            conv, _ = await ConversationService.get_or_create_conversation(db, customer.id)
+            from app.models.conversation import Conversation
+            from sqlalchemy import select
+            from sqlalchemy.orm import selectinload
+            from app.core.permissions import check_conversation
+            conv=await db.scalar(select(Conversation).where(Conversation.customer_id==customer.id)
+                .options(selectinload(Conversation.customer)).order_by(Conversation.last_message_at.desc().nullslast()).limit(1))
+            if not conv:return booking
+            await check_conversation(db,current_user,conv.id)
             date_str = booking.scheduled_at.strftime("%d.%m в %H:%M") if booking.scheduled_at else "в выбранное время"
             name = customer.name or booking.customer_name or "Клиент"
             
@@ -128,19 +131,8 @@ async def cancel_booking(
                 f"Пожалуйста, напишите другое удобное для вас время или день, и мы с радостью подберем для вас свободный слот! 😊"
             )
             
-            await ConversationService.record_message(
-                db=db,
-                conversation_id=conv.id,
-                customer_id=customer.id,
-                channel=conv.channel,
-                direction="outbound",
-                sender_type="employee",
-                text=cancel_msg,
-            )
-            
-            if customer.instagram_id and not customer.instagram_id.startswith("test"):
-                ig_client = InstagramClient()
-                await ig_client.send_text_message(customer.instagram_id, cancel_msg)
+            from app.services.message_delivery import deliver
+            await deliver(db,conv,cancel_msg,actor_id=current_user.id)
     except Exception as exc:
         import logging
         logging.getLogger("insta.bookings").error("Failed sending cancel msg to customer: %s", exc)

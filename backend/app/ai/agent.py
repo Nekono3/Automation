@@ -32,6 +32,9 @@ except ImportError:
     from mistralai import Mistral
 
 
+from app.services.conversation_service import ConversationService
+
+
 class MistralConsultingAgent:
     """
     Intelligent AI Agent for Consulteam EdTech Admissions Agency.
@@ -147,9 +150,7 @@ class MistralConsultingAgent:
             f"АКТУАЛЬНЫЕ УСЛУГИ И КОНСУЛЬТАЦИИ:\n{services_text}\n\n"
             f"КОНТЕКСТ ДИАЛОГА:\n"
             f"- Канал обращения: {'WhatsApp' if channel == 'whatsapp' else 'Instagram Direct'}\n"
-            f"- Имя/Ник: {customer.name or customer.username or 'Абитуриент'}\n"
-            f"- Телефон / WhatsApp ID: {customer.phone or customer.whatsapp_id or 'не указан'}\n"
-            f"- Instagram ID: {customer.instagram_id or 'не указан'}\n\n"
+            f"- Обращение: Абитуриент\n"
             f"Инструкция: Отвечай кратко, доброжелательно и квалифицируй абитуриента. "
             f"Когда параметры ясны — веди на бесплатную консультацию в офис в Бишкеке или Zoom."
         )
@@ -160,6 +161,7 @@ class MistralConsultingAgent:
         ]
 
         if not self.client:
+            await ConversationService.set_mode(db,conversation.id,"human",reason="AI provider unavailable")
             logger.warning("Mistral API key not configured. Returning fallback Consulteam response.")
             return "Салам! Рады приветствовать вас в Consulteam (@consulteam.kg) 🎓 Подскажите, в какую страну вы рассматриваете поступление и в каком классе сейчас учитесь?"
 
@@ -232,7 +234,7 @@ class MistralConsultingAgent:
                     customer_id=customer.id,
                     data=StudentProfileUpdate(**profile_updates),
                 )
-                logger.info("Updated StudentProfile for customer #%d: %s", customer.id, profile_updates)
+                logger.info("Integration event processed")
 
             # 7. Customer phone & name detection
             last_assistant_msg = ""
@@ -255,7 +257,7 @@ class MistralConsultingAgent:
                 if len(normalized_phone) >= 10:
                     customer.phone = normalized_phone
                     await db.commit()
-                    logger.info("Captured & normalized customer phone: %s", normalized_phone)
+                    logger.info("Integration event processed")
 
             # Name extraction
             extracted_name = None
@@ -283,7 +285,7 @@ class MistralConsultingAgent:
             if extracted_name and len(extracted_name) >= 2:
                 customer.name = extracted_name
                 await db.commit()
-                logger.info("Captured customer name: %s", extracted_name)
+                logger.info("Integration event processed")
 
             # 8. Deal Pipeline Sync
             deals = await DealService.list_deals(db, pipeline_type="SALES", customer_id=customer.id)
@@ -350,5 +352,6 @@ class MistralConsultingAgent:
             return reply_text
 
         except Exception as exc:
-            logger.error("Error generating Mistral response: %s", exc)
+            await ConversationService.set_mode(db,conversation.id,"human",reason="AI provider failure")
+            logger.error("AI provider failure")
             return "Салам! Спасибо за обращение в Consulteam 🎓 Наш ведущий консультант ответит вам в течение нескольких минут."

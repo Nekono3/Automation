@@ -10,7 +10,8 @@ from app.config import settings
 # Async PostgreSQL Engine
 engine = create_async_engine(
     settings.async_database_url,
-    echo=settings.DEBUG,
+    echo=False,
+    hide_parameters=True,
     pool_pre_ping=False,
     pool_recycle=300,
     pool_size=10,

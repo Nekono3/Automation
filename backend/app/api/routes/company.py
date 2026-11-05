@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.permissions import has, require, customer_clause, team_users
 from app.database import get_db
 from app.models import User, Customer, Deal, DocumentChecklist, Conversation, Message, EnrolledStudent, UniversityProgram, AuditLog
 from app.models.company import (LeadRecord, AdmissionLink, FinanceCategory, FinanceTransaction,
@@ -29,12 +30,7 @@ def serialize(record):
 
 
 def management(user):
-    return user.role in ("admin", "lead_manager")
-
-
-def require_management(user):
-    if not management(user):
-        raise HTTPException(403, "Доступно администратору и РОП")
+    return has(user,"leads.read_all","leads.read_team")
 
 
 async def exists(db, model, record_id):
@@ -70,9 +66,12 @@ def period_filter(statement, column, start, end):
 @router.get("/directory")
 async def directory(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     staff = (await db.scalars(select(User).where(User.is_active.is_(True)).order_by(User.full_name))).all()
+    if not has(user,"employees.read","employees.manage"):
+        allowed=await team_users(db,user) if has(user,"employees.read_team") else [user.id]
+        staff=[u for u in staff if u.id in allowed]
     return {"users": [{"id": u.id, "full_name": u.full_name, "role": u.role,
                         "whatsapp_account_id": u.whatsapp_account_id} for u in staff],
-            "categories": [serialize(c) for c in (await db.scalars(select(FinanceCategory).order_by(FinanceCategory.name))).all()],
+            "categories": [serialize(c) for c in (await db.scalars(select(FinanceCategory).order_by(FinanceCategory.name))).all()] if has(user,"finance.read") else [],
             "countries": list((await db.scalars(select(EnrolledStudent.country).distinct().order_by(EnrolledStudent.country))).all())}
 
 
@@ -81,8 +80,7 @@ async def leads(search: str = "", category: str | None = None, status: str | Non
                 assigned_user_id: int | None = None, skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500),
                 db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     stmt = select(Customer, LeadRecord).outerjoin(LeadRecord, Customer.id == LeadRecord.customer_id)
-    if not management(user):
-        stmt = stmt.where(LeadRecord.assigned_user_id == user.id)
+    stmt = stmt.where(await customer_clause(db,user))
     if search:
         pattern = f"%{search.strip()}%"
         stmt = stmt.where(or_(Customer.name.ilike(pattern), Customer.phone.ilike(pattern), Customer.email.ilike(pattern)))
@@ -103,6 +101,10 @@ async def create_lead(data: LeadInput, db: AsyncSession = Depends(get_db), user:
     assigned = data.assigned_user_id if management(user) else user.id
     if assigned:
         await exists(db, User, assigned)
+        if assigned != user.id:
+            require(user,"leads.assign")
+            if not has(user,"leads.update_all") and assigned not in await team_users(db,user):
+                raise HTTPException(403,"Назначение за пределами команды запрещено")
     customer = Customer(name=data.name, phone=data.phone or None, email=data.email or None)
     db.add(customer)
     await db.flush()
@@ -122,6 +124,15 @@ async def update_lead(customer_id: int, data: LeadUpdate, db: AsyncSession = Dep
         raise HTTPException(403, "Можно изменять только свои лиды; распределение доступно РОП")
     if data.assigned_user_id:
         await exists(db, User, data.assigned_user_id)
+    if data.assigned_user_id != (lead.assigned_user_id if lead else None):
+        require(user,"leads.assign")
+        if not has(user,"leads.update_all") and data.assigned_user_id not in await team_users(db,user):
+            raise HTTPException(403,"Назначение за пределами команды запрещено")
+        from app.modules.security.models import LeadAssignment
+        from sqlalchemy import update
+        await db.execute(update(LeadAssignment).where(LeadAssignment.customer_id==customer_id,LeadAssignment.released_at.is_(None)).values(released_at=datetime.now(timezone.utc)))
+        if data.assigned_user_id:
+            db.add(LeadAssignment(customer_id=customer_id,user_id=data.assigned_user_id,assigned_by=user.id))
     if not lead:
         lead = LeadRecord(customer_id=customer_id)
         db.add(lead)
@@ -169,7 +180,6 @@ async def enroll_lead(customer_id: int, country: str = Query(min_length=1, max_l
 
 @router.post("/finance/categories", status_code=201)
 async def create_category(data: CategoryInput, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
     category = FinanceCategory(name=data.name)
     db.add(category)
     await commit(db)
@@ -181,7 +191,6 @@ async def transactions(start: date | None = None, end: date | None = None, curre
                        category_id: int | None = None, student_id: int | None = None, kind: str | None = None,
                        include_voided: bool = False, skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500),
                        db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
     stmt = select(FinanceTransaction)
     stmt = period_filter(stmt, FinanceTransaction.occurred_on, start, end)
     for col, val in ((FinanceTransaction.currency, currency), (FinanceTransaction.category_id, category_id),
@@ -197,7 +206,6 @@ async def transactions(start: date | None = None, end: date | None = None, curre
 
 @router.post("/finance/transactions", status_code=201)
 async def create_transaction(data: TransactionInput, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
     await exists(db, FinanceCategory, data.category_id)
     if data.student_id:
         student = await exists(db, EnrolledStudent, data.student_id)
@@ -219,7 +227,6 @@ async def create_transaction(data: TransactionInput, db: AsyncSession = Depends(
 
 @router.post("/finance/transactions/{transaction_id}/void")
 async def void_transaction(transaction_id: int, data: VoidInput, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
     transaction = await db.scalar(select(FinanceTransaction).where(FinanceTransaction.id == transaction_id).with_for_update())
     if not transaction:
         raise HTTPException(404, "Операция не найдена")
@@ -236,7 +243,6 @@ async def void_transaction(transaction_id: int, data: VoidInput, db: AsyncSessio
 async def finance_report(start: date | None = None, end: date | None = None, currency: str | None = None,
                          category_id: int | None = None, student_id: int | None = None,
                          db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
     stmt = select(FinanceTransaction.currency, FinanceTransaction.category_id,
                   func.to_char(FinanceTransaction.occurred_on, "YYYY-MM").label("month"),
                   FinanceTransaction.kind, func.sum(FinanceTransaction.amount).label("amount"))
@@ -269,16 +275,25 @@ async def student_dossier(student_id: int, db: AsyncSession = Depends(get_db), u
     program = await db.get(UniversityProgram, link.program_id) if link and link.program_id else None
     docs = (await db.scalars(select(StudentDocument).where(StudentDocument.student_id == student_id).order_by(StudentDocument.id.desc()))).all()
     logs = (await db.scalars(select(AuditLog).where(AuditLog.entity == "enrolled_student", AuditLog.entity_id == student_id).order_by(AuditLog.id.desc()).limit(200))).all()
-    payments = (await db.scalars(select(FinanceTransaction).where(FinanceTransaction.student_id == student_id).order_by(FinanceTransaction.occurred_on.desc(), FinanceTransaction.id.desc()))).all() if management(user) else []
-    return {"student": serialize(student), "link": serialize(link) if link else None,
+    payments = (await db.scalars(select(FinanceTransaction).where(FinanceTransaction.student_id == student_id).order_by(FinanceTransaction.occurred_on.desc(), FinanceTransaction.id.desc()))).all() if has(user,"finance.read") else []
+    from app.core.projections import student_view
+    if not has(user,"student_documents.read_all","student_documents.read_assigned"):
+        docs=[]
+        logs=[log for log in logs if log.action not in ('upload_document','document_status')]
+    if not has(user,"finance.read"):
+        from app.core.projections import FINANCIAL_FIELDS
+        # Only expose sanitized copies; never mutate stored audit metadata.
+        history=[{**serialize(log),'extra_data':{k:v for k,v in log.extra_data.items() if k not in FINANCIAL_FIELDS}} for log in logs]
+    else:
+        history=[serialize(log) for log in logs]
+    return {"student": student_view(student,user), "link": serialize(link) if link else None,
             "customer": serialize(customer) if customer else None, "program": serialize(program) if program else None,
             "documents": [{k: v for k, v in serialize(doc).items() if k != "storage_key"} for doc in docs],
-            "history": [serialize(log) for log in logs], "transactions": [serialize(p) for p in payments]}
+            "history": history, "transactions": [serialize(p) for p in payments]}
 
 
 @router.put("/students/{student_id}/links")
 async def link_student(student_id: int, data: AdmissionInput, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
     student = await exists(db, EnrolledStudent, student_id)
     for model, val in ((Customer, data.customer_id), (Deal, data.deal_id), (User, data.manager_id), (UniversityProgram, data.program_id)):
         if val:
@@ -318,9 +333,15 @@ async def upload_document(student_id: int, request: Request, name: str = Query(m
             raise HTTPException(413, "Максимальный размер документа — 10 МБ")
     if not content:
         raise HTTPException(422, "Файл пуст")
+    from app.core.files import validate_document
+    name=validate_document(bytes(content),content_type,name)
     key = uuid4().hex
-    await asyncio.to_thread(PRIVATE_DOCUMENTS.mkdir, parents=True, exist_ok=True)
-    await asyncio.to_thread((PRIVATE_DOCUMENTS / key).write_bytes, content)
+    await asyncio.to_thread(PRIVATE_DOCUMENTS.mkdir, parents=True, exist_ok=True, mode=0o700)
+    import os
+    def write_private():
+        with os.fdopen(os.open(PRIVATE_DOCUMENTS / key,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),"wb") as output:
+            output.write(content)
+    await asyncio.to_thread(write_private)
     doc = StudentDocument(student_id=student_id, name=name, storage_key=key, content_type=content_type,
                           size=len(content), uploaded_by=user.id)
     db.add(doc)
@@ -336,7 +357,9 @@ async def upload_document(student_id: int, request: Request, name: str = Query(m
 @router.get("/documents/{document_id}/download")
 async def download_document(document_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     doc = await exists(db, StudentDocument, document_id)
-    path = PRIVATE_DOCUMENTS / doc.storage_key
+    path = (PRIVATE_DOCUMENTS / doc.storage_key).resolve()
+    if not path.is_relative_to(PRIVATE_DOCUMENTS.resolve()):
+        raise HTTPException(404,"Файл недоступен")
     if not path.is_file():
         raise HTTPException(404, "Файл недоступен")
     return FileResponse(path, media_type=doc.content_type, filename=doc.name, headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"})
@@ -359,7 +382,6 @@ async def metrics(db: AsyncSession = Depends(get_db), user: User = Depends(get_c
 
 @router.post("/kpi/metrics", status_code=201)
 async def create_metric(data: MetricInput, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
     metric = EmployeeMetric(**data.model_dump())
     db.add(metric)
     await commit(db)
@@ -370,9 +392,10 @@ async def create_metric(data: MetricInput, db: AsyncSession = Depends(get_db), u
 async def results(period: date | None = None, user_id: int | None = None,
                    db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     stmt = select(EmployeeResult)
-    if not management(user):
-        stmt = stmt.where(EmployeeResult.user_id == user.id)
-    elif user_id:
+    if not has(user,"kpi.read_all"):
+        allowed=await team_users(db,user) if has(user,"kpi.read_team") else [user.id]
+        stmt = stmt.where(EmployeeResult.user_id.in_(allowed))
+    if user_id:
         stmt = stmt.where(EmployeeResult.user_id == user_id)
     if period:
         stmt = stmt.where(EmployeeResult.period == period.replace(day=1))
@@ -381,9 +404,11 @@ async def results(period: date | None = None, user_id: int | None = None,
 
 @router.put("/kpi/results")
 async def save_result(data: ResultInput, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
-    await exists(db, User, data.user_id)
-    await exists(db, EmployeeMetric, data.metric_id)
+    target=await exists(db, User, data.user_id)
+    metric=await exists(db, EmployeeMetric, data.metric_id)
+    if not has(user,"kpi.evaluate"):
+        if data.user_id not in await team_users(db,user) or target.role not in ("manager","head_of_sales","lead_manager") or metric.department not in ("Продажи","Sales"):
+            raise HTTPException(403,"Оценка KPI ограничена отделом продаж своей команды")
     row = await db.scalar(select(EmployeeResult).where(EmployeeResult.user_id == data.user_id,
                            EmployeeResult.metric_id == data.metric_id, EmployeeResult.period == data.period).with_for_update())
     if not row:
@@ -402,11 +427,13 @@ async def save_result(data: ResultInput, db: AsyncSession = Depends(get_db), use
 @router.get("/managers")
 async def manager_report(start: date | None = None, end: date | None = None,
                           db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    require_management(user)
     # Group independently to avoid multiplying lead/message counts through joins.
     staff = (await db.scalars(select(User).where(User.is_active.is_(True)).order_by(User.full_name))).all()
     leads_stmt = period_filter(select(LeadRecord.assigned_user_id, LeadRecord.status, func.count()).group_by(LeadRecord.assigned_user_id, LeadRecord.status),
                                func.date(LeadRecord.created_at), start, end)
+    if not has(user,"leads.read_all"):
+        allowed=await team_users(db,user)
+        staff=[u for u in staff if u.id in allowed]
     lead_counts = {}
     for uid, status, count in (await db.execute(leads_stmt)).all():
         lead_counts.setdefault(uid, {})[status] = count
@@ -430,3 +457,10 @@ async def manager_report(start: date | None = None, end: date | None = None,
     return [{"id": u.id, "name": u.full_name, "role": u.role, "whatsapp_account_id": u.whatsapp_account_id,
              "leads": lead_counts.get(u.id, {}), "whatsapp": {**chats.get(u.whatsapp_account_id, {}), **activity.get(u.whatsapp_account_id, {})} if u.whatsapp_account_id else {}}
             for u in staff]
+
+@router.get('/finance/students')
+async def billing_students(search:str='',db:AsyncSession=Depends(get_db),user:User=Depends(get_current_user)):
+    require(user,'finance.read')
+    statement=select(EnrolledStudent.id,EnrolledStudent.full_name).order_by(EnrolledStudent.full_name).limit(1000)
+    if search:statement=statement.where(EnrolledStudent.full_name.ilike(f'%{search.strip()}%'))
+    return [{'id':sid,'full_name':name} for sid,name in (await db.execute(statement)).all()]

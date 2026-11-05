@@ -20,6 +20,8 @@ class User(Base, TimestampMixin):
     role: Mapped[str] = mapped_column(String(32), default="manager", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+
     # Optional assignment to a specific WhatsApp number
     whatsapp_account_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("whatsapp_accounts.id", ondelete="SET NULL"), nullable=True

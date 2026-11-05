@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime,timezone
 from typing import Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Request, Query, Header, HTTPException, status, Depends, BackgroundTasks
@@ -36,7 +37,7 @@ async def verify_instagram_webhook(
     """
     logger.info("Received Meta webhook challenge verification request.")
 
-    if mode == "subscribe" and verify_token == settings.WEBHOOK_VERIFY_TOKEN:
+    if mode == "subscribe" and bool(settings.WEBHOOK_VERIFY_TOKEN) and verify_token == settings.WEBHOOK_VERIFY_TOKEN:
         logger.info("Meta webhook verification SUCCESSFUL. Responding with challenge.")
         return PlainTextResponse(content=challenge or "", status_code=status.HTTP_200_OK)
 
@@ -60,11 +61,11 @@ async def receive_instagram_event(
     """
     raw_body = await request.body()
     logger.info("RECEIVED WEBHOOK POST event from Meta! Length: %d bytes", len(raw_body))
-    logger.debug("Webhook headers: %s | Body: %s", dict(request.headers), raw_body.decode(errors="ignore")[:300])
+    logger.info("Integration event processed")
 
     # Signature verification (warn in dev if signature mismatch, reject in production)
     is_valid_sig = validate_meta_signature(raw_body, x_hub_signature_256, settings.META_APP_SECRET)
-    if not is_valid_sig and settings.ENVIRONMENT == "production":
+    if not is_valid_sig:
         logger.warning("Rejected webhook event due to invalid HMAC signature in production.")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -161,7 +162,7 @@ async def receive_instagram_event(
             )
 
             # Auto-enrich customer name and username via Instagram Graph API
-            if customer.name.startswith("IG-") or not customer.username:
+            if (customer.name or "").startswith("IG-") or not customer.username:
                 try:
                     from app.integrations.instagram.client import InstagramClient
                     from app.services.deal_service import DealService
@@ -172,7 +173,7 @@ async def receive_instagram_event(
                             customer.username = ig_prof["username"]
                         if ig_prof.get("name"):
                             customer.name = ig_prof["name"]
-                        elif ig_prof.get("username") and customer.name.startswith("IG-"):
+                        elif ig_prof.get("username") and (customer.name or "").startswith("IG-"):
                             customer.name = ig_prof["username"]
                         await db.commit()
                         await DealService.sync_customer_deal_title(db, customer.id)
@@ -196,12 +197,7 @@ async def receive_instagram_event(
             )
 
             if is_new:
-                logger.info(
-                    "Recorded inbound message from customer %s (conv #%d): %s",
-                    customer.name,
-                    conv.id,
-                    (event.text or "")[:40],
-                )
+                logger.info("Integration event processed")
                 # If conversation is in 'ai' mode, trigger AI responder in background
                 if conv.mode == "ai" and event.text:
                     from app.services.ai_responder import process_and_reply_background
@@ -242,12 +238,7 @@ async def receive_instagram_event(
                     )
                 )
 
-                logger.info(
-                    "Processing Instagram comment @%s on media %s: '%s'",
-                    comment.sender_username,
-                    comment.media_id,
-                    comment.text,
-                )
+                logger.info("Integration event processed")
 
                 # Match against automation triggers (Comment-to-DM)
                 trigger = await AutomationService.match_trigger(
@@ -273,7 +264,7 @@ async def receive_instagram_event(
                             comment_id=comment.comment_id,
                             text=trigger.comment_reply_text,
                         )
-                        logger.info("Public reply result: %s", reply_res)
+                        logger.info("Integration event processed")
 
                     # 2. Private reply to user in Direct Message (Comment-to-DM)
                     dm_text = trigger.dm_reply_text or "Здравствуйте! Мы получили ваш комментарий."
@@ -284,7 +275,7 @@ async def receive_instagram_event(
                         comment_id=comment.comment_id,
                         text=dm_text,
                     )
-                    logger.info("Private reply result: %s", dm_res)
+                    logger.info("Integration event processed")
 
                     # 3. Create or find Customer and record message in CRM
                     if comment.sender_id:
@@ -294,10 +285,10 @@ async def receive_instagram_event(
                         )
                         if comment.sender_username and not customer.username:
                             customer.username = comment.sender_username
-                            if customer.name.startswith("IG-"):
+                            if (customer.name or "").startswith("IG-"):
                                 customer.name = comment.sender_username
 
-                        if customer.name.startswith("IG-") or not customer.username:
+                        if (customer.name or "").startswith("IG-") or not customer.username:
                             try:
                                 ig_prof = await insta_client.get_user_profile(comment.sender_id)
                                 if ig_prof:
@@ -305,7 +296,7 @@ async def receive_instagram_event(
                                         customer.username = ig_prof["username"]
                                     if ig_prof.get("name"):
                                         customer.name = ig_prof["name"]
-                                    elif ig_prof.get("username") and customer.name.startswith("IG-"):
+                                    elif ig_prof.get("username") and (customer.name or "").startswith("IG-"):
                                         customer.name = ig_prof["username"]
                                     await db.commit()
                                     from app.services.deal_service import DealService
@@ -344,7 +335,7 @@ async def receive_instagram_event(
                     processed_count += 1
 
                 else:
-                    logger.info("No active trigger matched for comment: '%s'", comment.text)
+                    logger.info("Integration event processed")
 
             except Exception as exc:
                 logger.error("Error processing comment event %s: %s", comment.comment_id, exc)
@@ -369,7 +360,7 @@ async def verify_whatsapp_webhook(
     """
     logger.info("Received WhatsApp webhook challenge verification request.")
 
-    if mode == "subscribe" and verify_token == settings.WEBHOOK_VERIFY_TOKEN:
+    if mode == "subscribe" and bool(settings.WEBHOOK_VERIFY_TOKEN) and verify_token == settings.WEBHOOK_VERIFY_TOKEN:
         logger.info("WhatsApp webhook verification SUCCESSFUL. Responding with challenge.")
         return PlainTextResponse(content=challenge or "", status_code=status.HTTP_200_OK)
 
@@ -397,7 +388,7 @@ async def receive_whatsapp_event(
 
     # Optional signature verification in production
     is_valid_sig = validate_meta_signature(raw_body, x_hub_signature_256, settings.META_APP_SECRET)
-    if not is_valid_sig and settings.ENVIRONMENT == "production":
+    if not is_valid_sig:
         logger.warning("Rejected WhatsApp webhook event due to invalid HMAC signature in production.")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -450,11 +441,18 @@ async def receive_whatsapp_event(
                 name=event.sender_name,
             )
 
+            from app.models.whatsapp_account import WhatsAppAccount
+            cloud_account = await db.scalar(select(WhatsAppAccount).where(
+                WhatsAppAccount.account_id == f"cloud:{event.recipient_phone_id}",
+                WhatsAppAccount.is_active.is_(True)))
+            if not cloud_account:
+                raise HTTPException(422, "Cloud account must be configured explicitly")
             # 3. Lookup or create active conversation with channel='whatsapp'
             conv, _ = await ConversationService.get_or_create_conversation(
                 db=db,
                 customer_id=customer.id,
                 channel="whatsapp",
+                whatsapp_account_id=cloud_account.id,
             )
 
             # 4. Record inbound message
@@ -470,12 +468,7 @@ async def receive_whatsapp_event(
             )
 
             if is_new:
-                logger.info(
-                    "Recorded inbound WhatsApp message from %s (conv #%d): %s",
-                    customer.name,
-                    conv.id,
-                    event.text[:40],
-                )
+                logger.info("Integration event processed")
                 # If conversation is in 'ai' mode, trigger AI responder in background
                 if conv.mode == "ai" and event.text:
                     from app.services.ai_responder import process_and_reply_background
@@ -500,7 +493,7 @@ async def receive_whatsapp_event(
 # =========================================================================
 
 class WhatsAppBridgePayload(BaseModel):
-    account_id: Optional[str] = "account_1"
+    account_id: str = __import__("pydantic").Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
     sender_phone: Optional[str] = ""
     sender_name: Optional[str] = None
     sender_jid: Optional[str] = None
@@ -510,20 +503,31 @@ class WhatsAppBridgePayload(BaseModel):
     revoked_message_id: Optional[str] = None
 
 
-@router.post("/whatsapp-bridge")
+async def authenticate_bridge(request:Request,db:AsyncSession=Depends(get_db)):
+    from app.core.service_auth import verify_bridge_request
+    await verify_bridge_request(request,db)
+
+
+@router.post("/whatsapp-bridge",dependencies=[Depends(authenticate_bridge)])
 async def receive_whatsapp_bridge_event(
     payload: WhatsAppBridgePayload,
+    request: Request,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Receives incoming WhatsApp message or revocation event from Baileys bridge.
     """
+    from app.models.whatsapp_account import WhatsAppAccount
+    from app.models.conversation import Conversation
+    wa_account=await db.scalar(select(WhatsAppAccount).where(WhatsAppAccount.account_id==payload.account_id,WhatsAppAccount.is_active.is_(True)))
+    if not wa_account:raise HTTPException(422,"Unknown or inactive WhatsApp account")
+    wa_account_id=wa_account.id
     # 0. Handle message revocation ("Delete for everyone" in WhatsApp)
     if payload.event_type == "revoke" and payload.revoked_message_id:
         from app.models.message import Message
         msg_res = await db.execute(
-            select(Message).where(Message.external_message_id == payload.revoked_message_id)
+            select(Message).join(Conversation,Message.conversation_id==Conversation.id).where(Message.external_message_id == payload.revoked_message_id,Conversation.whatsapp_account_id==wa_account_id)
         )
         msg_obj = msg_res.scalar_one_or_none()
         if msg_obj:
@@ -543,8 +547,8 @@ async def receive_whatsapp_bridge_event(
     if not display_phone.startswith("+") and display_phone.isdigit():
         display_phone = f"+{display_phone}"
 
-    account_key = payload.account_id or "account_1"
-    logger.info("Received WhatsApp bridge message [%s] from %s (jid: %s): %s", account_key, display_phone, reply_target, (payload.text or "")[:40])
+    account_key = payload.account_id
+    logger.info("Integration event processed")
 
     # 1. Deduplication via message_id check
     if payload.message_id:
@@ -563,19 +567,6 @@ async def receive_whatsapp_bridge_event(
                 status="processed",
             )
         )
-
-    # 2. Find associated WhatsApp Account
-    from app.models.whatsapp_account import WhatsAppAccount
-    acc_res = await db.execute(
-        select(WhatsAppAccount).where(WhatsAppAccount.account_id == account_key)
-    )
-    wa_account = acc_res.scalar_one_or_none()
-    if not wa_account:
-        acc_res = await db.execute(
-            select(WhatsAppAccount).order_by(WhatsAppAccount.is_main.desc(), WhatsAppAccount.id.asc())
-        )
-        wa_account = acc_res.scalars().first()
-    wa_account_id = wa_account.id if wa_account else None
 
     # 3. Get or create customer by phone number
     customer, _ = await CustomerService.get_or_create_by_whatsapp_id(

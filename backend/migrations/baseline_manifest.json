@@ -1,0 +1,2203 @@
+{
+  "audit_logs": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "user_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "action": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "entity": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "entity_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "extra_data": {
+        "type": "JSON",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_audit_logs_action",
+        "columns": [
+          "action"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_audit_logs_created_at",
+        "columns": [
+          "created_at"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_audit_logs_entity",
+        "columns": [
+          "entity"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_audit_logs_entity_id",
+        "columns": [
+          "entity_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_audit_logs_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_audit_logs_user_id",
+        "columns": [
+          "user_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "automation_triggers": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "name": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "keyword": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "match_type": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "channel": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "comment_reply_text": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "dm_reply_text": {
+        "type": "TEXT",
+        "nullable": false
+      },
+      "attachment_url": {
+        "type": "VARCHAR(1024)",
+        "nullable": true
+      },
+      "attachment_name": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "followup_text": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "target_pipeline_stage": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "trigger_count": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_automation_triggers_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_automation_triggers_is_active",
+        "columns": [
+          "is_active"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_automation_triggers_keyword",
+        "columns": [
+          "keyword"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "customers": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "name": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "username": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "phone": {
+        "type": "VARCHAR(64)",
+        "nullable": true
+      },
+      "email": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "instagram_id": {
+        "type": "VARCHAR(128)",
+        "nullable": true
+      },
+      "whatsapp_id": {
+        "type": "VARCHAR(128)",
+        "nullable": true
+      },
+      "notes": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "tags": {
+        "type": "JSON",
+        "nullable": false
+      },
+      "extra_data": {
+        "type": "JSON",
+        "nullable": false
+      },
+      "last_contact_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": true
+      },
+      "role_type": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "preferred_language": {
+        "type": "VARCHAR(16)",
+        "nullable": false
+      },
+      "parent_contact_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_customers_email",
+        "columns": [
+          "email"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_customers_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_customers_instagram_id",
+        "columns": [
+          "instagram_id"
+        ],
+        "unique": true
+      },
+      {
+        "name": "ix_customers_phone",
+        "columns": [
+          "phone"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_customers_username",
+        "columns": [
+          "username"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_customers_whatsapp_id",
+        "columns": [
+          "whatsapp_id"
+        ],
+        "unique": true
+      }
+    ]
+  },
+  "employee_metrics": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "name": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "department": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "position": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "unit": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "direction": {
+        "type": "VARCHAR(8)",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [
+      [
+        "name"
+      ]
+    ],
+    "indexes": []
+  },
+  "enrolled_students": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "full_name": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "country": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "process_stage": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "manager": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "next_action": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "risk": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "comment": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "is_completed": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "status_raw": {
+        "type": "VARCHAR(64)",
+        "nullable": true
+      },
+      "contract_amount": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "paid_amount": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "remaining_amount": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "seller_commission_paid": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "mentor_commission_paid": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "next_payment_condition": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "last_payment_date": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "finance_comment": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "full_payment_received": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_enrolled_students_country",
+        "columns": [
+          "country"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_enrolled_students_full_name",
+        "columns": [
+          "full_name"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_enrolled_students_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_enrolled_students_is_completed",
+        "columns": [
+          "is_completed"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_enrolled_students_manager",
+        "columns": [
+          "manager"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_enrolled_students_process_stage",
+        "columns": [
+          "process_stage"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "finance_categories": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "name": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [
+      [
+        "name"
+      ]
+    ],
+    "indexes": []
+  },
+  "sellers": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "name": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "role": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "phone": {
+        "type": "VARCHAR(64)",
+        "nullable": true
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_sellers_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_sellers_is_active",
+        "columns": [
+          "is_active"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_sellers_name",
+        "columns": [
+          "name"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "services": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "name": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "description": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "duration_minutes": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "price": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "currency": {
+        "type": "VARCHAR(10)",
+        "nullable": false
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "category": {
+        "type": "VARCHAR(128)",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_services_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_services_is_active",
+        "columns": [
+          "is_active"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_services_name",
+        "columns": [
+          "name"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "system_settings": {
+    "columns": {
+      "key": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "value": {
+        "type": "TEXT",
+        "nullable": false
+      },
+      "description": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "key"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_system_settings_key",
+        "columns": [
+          "key"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "university_programs": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "university": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "faculty": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "program_name": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "program_name_ru": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "degree_level": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "tuition_fee": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "tuition_fee_usd": {
+        "type": "FLOAT",
+        "nullable": true
+      },
+      "currency": {
+        "type": "VARCHAR(10)",
+        "nullable": false
+      },
+      "duration": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "language": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "city": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "country": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "notes": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_university_programs_degree_level",
+        "columns": [
+          "degree_level"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_university_programs_faculty",
+        "columns": [
+          "faculty"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_university_programs_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_university_programs_is_active",
+        "columns": [
+          "is_active"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_university_programs_program_name",
+        "columns": [
+          "program_name"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_university_programs_program_name_ru",
+        "columns": [
+          "program_name_ru"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_university_programs_university",
+        "columns": [
+          "university"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "webhook_events": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "event_id": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "source": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "payload": {
+        "type": "JSON",
+        "nullable": false
+      },
+      "status": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_webhook_events_created_at",
+        "columns": [
+          "created_at"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_webhook_events_event_id",
+        "columns": [
+          "event_id"
+        ],
+        "unique": true
+      },
+      {
+        "name": "ix_webhook_events_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_webhook_events_source",
+        "columns": [
+          "source"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "whatsapp_accounts": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "account_id": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "name": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "role": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "phone": {
+        "type": "VARCHAR(32)",
+        "nullable": true
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "is_main": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "color": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_whatsapp_accounts_account_id",
+        "columns": [
+          "account_id"
+        ],
+        "unique": true
+      },
+      {
+        "name": "ix_whatsapp_accounts_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "bookings": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "booking_number": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "service_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "service_name_snapshot": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "price_snapshot": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "currency": {
+        "type": "VARCHAR(10)",
+        "nullable": false
+      },
+      "status": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "scheduled_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": true
+      },
+      "duration_minutes": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "meeting_type": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "meeting_location": {
+        "type": "VARCHAR(512)",
+        "nullable": true
+      },
+      "customer_name": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "customer_phone": {
+        "type": "VARCHAR(64)",
+        "nullable": true
+      },
+      "customer_email": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "notes": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "confirmed_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": true
+      },
+      "cancelled_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "service_id"
+        ],
+        "target": "services.id"
+      },
+      {
+        "columns": [
+          "customer_id"
+        ],
+        "target": "customers.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "idx_booking_status_date",
+        "columns": [
+          "status",
+          "scheduled_at"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_bookings_booking_number",
+        "columns": [
+          "booking_number"
+        ],
+        "unique": true
+      },
+      {
+        "name": "ix_bookings_customer_id",
+        "columns": [
+          "customer_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_bookings_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_bookings_scheduled_at",
+        "columns": [
+          "scheduled_at"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_bookings_status",
+        "columns": [
+          "status"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "conversations": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "channel": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "whatsapp_account_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "mode": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "status": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "priority": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "unread_count": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "last_message_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "customer_id"
+        ],
+        "target": "customers.id"
+      },
+      {
+        "columns": [
+          "whatsapp_account_id"
+        ],
+        "target": "whatsapp_accounts.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "idx_conv_cust_channel",
+        "columns": [
+          "customer_id",
+          "channel"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_conversations_channel",
+        "columns": [
+          "channel"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_conversations_customer_id",
+        "columns": [
+          "customer_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_conversations_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_conversations_mode",
+        "columns": [
+          "mode"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_conversations_status",
+        "columns": [
+          "status"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_conversations_whatsapp_account_id",
+        "columns": [
+          "whatsapp_account_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "seller_kpi_records": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "seller_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "period": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "punctuality": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "calls_meetings": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "sales": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "team_meetings": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "innovation": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "total_score": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "evaluator": {
+        "type": "VARCHAR(128)",
+        "nullable": true
+      },
+      "notes": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "seller_id"
+        ],
+        "target": "sellers.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_seller_kpi_records_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_seller_kpi_records_period",
+        "columns": [
+          "period"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_seller_kpi_records_seller_id",
+        "columns": [
+          "seller_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "student_profiles": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "current_grade_or_status": {
+        "type": "VARCHAR(128)",
+        "nullable": true
+      },
+      "school_or_university": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "gpa": {
+        "type": "FLOAT",
+        "nullable": true
+      },
+      "language_tests": {
+        "type": "JSON",
+        "nullable": false
+      },
+      "target_countries": {
+        "type": "JSON",
+        "nullable": false
+      },
+      "target_degree": {
+        "type": "VARCHAR(64)",
+        "nullable": true
+      },
+      "planned_year": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "budget_expectation": {
+        "type": "VARCHAR(64)",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "customer_id"
+        ],
+        "target": "customers.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_student_profiles_customer_id",
+        "columns": [
+          "customer_id"
+        ],
+        "unique": true
+      },
+      {
+        "name": "ix_student_profiles_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "users": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "email": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "hashed_password": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "full_name": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "role": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "is_active": {
+        "type": "BOOLEAN",
+        "nullable": false
+      },
+      "whatsapp_account_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "whatsapp_account_id"
+        ],
+        "target": "whatsapp_accounts.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_users_email",
+        "columns": [
+          "email"
+        ],
+        "unique": true
+      },
+      {
+        "name": "ix_users_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "company_leads": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "assigned_user_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "category": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "status": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "next_action": {
+        "type": "VARCHAR(500)",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "customer_id"
+        ],
+        "target": "customers.id"
+      },
+      {
+        "columns": [
+          "assigned_user_id"
+        ],
+        "target": "users.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [
+      [
+        "customer_id"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_company_leads_assigned_user_id",
+        "columns": [
+          "assigned_user_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_company_leads_category",
+        "columns": [
+          "category"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_company_leads_status",
+        "columns": [
+          "status"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "deals": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "title": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "pipeline_type": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "stage": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "target_country": {
+        "type": "VARCHAR(128)",
+        "nullable": true
+      },
+      "target_degree": {
+        "type": "VARCHAR(64)",
+        "nullable": true
+      },
+      "amount": {
+        "type": "FLOAT",
+        "nullable": false
+      },
+      "currency": {
+        "type": "VARCHAR(8)",
+        "nullable": false
+      },
+      "lost_reason": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "assigned_user_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "notes": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "assigned_user_id"
+        ],
+        "target": "users.id"
+      },
+      {
+        "columns": [
+          "customer_id"
+        ],
+        "target": "customers.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_deals_assigned_user_id",
+        "columns": [
+          "assigned_user_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_deals_customer_id",
+        "columns": [
+          "customer_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_deals_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_deals_pipeline_type",
+        "columns": [
+          "pipeline_type"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_deals_stage",
+        "columns": [
+          "stage"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "employee_results": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "user_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "metric_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "period": {
+        "type": "DATE",
+        "nullable": false
+      },
+      "target": {
+        "type": "NUMERIC(18, 2)",
+        "nullable": false
+      },
+      "actual": {
+        "type": "NUMERIC(18, 2)",
+        "nullable": false
+      },
+      "notes": {
+        "type": "TEXT",
+        "nullable": false
+      },
+      "evaluated_by": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "metric_id"
+        ],
+        "target": "employee_metrics.id"
+      },
+      {
+        "columns": [
+          "user_id"
+        ],
+        "target": "users.id"
+      },
+      {
+        "columns": [
+          "evaluated_by"
+        ],
+        "target": "users.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [
+      [
+        "user_id",
+        "metric_id",
+        "period"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_employee_results_period",
+        "columns": [
+          "period"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_employee_results_user_id",
+        "columns": [
+          "user_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "messages": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "conversation_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "channel": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "external_message_id": {
+        "type": "VARCHAR(255)",
+        "nullable": true
+      },
+      "direction": {
+        "type": "VARCHAR(16)",
+        "nullable": false
+      },
+      "sender_type": {
+        "type": "VARCHAR(16)",
+        "nullable": false
+      },
+      "text": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "attachments": {
+        "type": "JSON",
+        "nullable": false
+      },
+      "status": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "extra_data": {
+        "type": "JSON",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "customer_id"
+        ],
+        "target": "customers.id"
+      },
+      {
+        "columns": [
+          "conversation_id"
+        ],
+        "target": "conversations.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "idx_msg_conv_created",
+        "columns": [
+          "conversation_id",
+          "created_at"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_channel",
+        "columns": [
+          "channel"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_conversation_id",
+        "columns": [
+          "conversation_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_created_at",
+        "columns": [
+          "created_at"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_customer_id",
+        "columns": [
+          "customer_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_direction",
+        "columns": [
+          "direction"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_external_message_id",
+        "columns": [
+          "external_message_id"
+        ],
+        "unique": true
+      },
+      {
+        "name": "ix_messages_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_sender_type",
+        "columns": [
+          "sender_type"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "student_documents": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "student_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "name": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "storage_key": {
+        "type": "VARCHAR(64)",
+        "nullable": false
+      },
+      "content_type": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "size": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "status": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "uploaded_by": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "student_id"
+        ],
+        "target": "enrolled_students.id"
+      },
+      {
+        "columns": [
+          "uploaded_by"
+        ],
+        "target": "users.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [
+      [
+        "storage_key"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_student_documents_student_id",
+        "columns": [
+          "student_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "company_admissions": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "student_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "customer_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "deal_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "manager_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "program_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "customer_id"
+        ],
+        "target": "customers.id"
+      },
+      {
+        "columns": [
+          "manager_id"
+        ],
+        "target": "users.id"
+      },
+      {
+        "columns": [
+          "deal_id"
+        ],
+        "target": "deals.id"
+      },
+      {
+        "columns": [
+          "student_id"
+        ],
+        "target": "enrolled_students.id"
+      },
+      {
+        "columns": [
+          "program_id"
+        ],
+        "target": "university_programs.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [
+      [
+        "student_id"
+      ],
+      [
+        "deal_id"
+      ],
+      [
+        "customer_id"
+      ]
+    ],
+    "indexes": []
+  },
+  "document_checklists": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "deal_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "document_name": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "status": {
+        "type": "VARCHAR(32)",
+        "nullable": false
+      },
+      "file_url": {
+        "type": "VARCHAR(1024)",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "deal_id"
+        ],
+        "target": "deals.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_document_checklists_deal_id",
+        "columns": [
+          "deal_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_document_checklists_id",
+        "columns": [
+          "id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  "finance_transactions": {
+    "columns": {
+      "id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "category_id": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "kind": {
+        "type": "VARCHAR(16)",
+        "nullable": false
+      },
+      "amount": {
+        "type": "NUMERIC(18, 2)",
+        "nullable": false
+      },
+      "currency": {
+        "type": "VARCHAR(3)",
+        "nullable": false
+      },
+      "occurred_on": {
+        "type": "DATE",
+        "nullable": false
+      },
+      "description": {
+        "type": "TEXT",
+        "nullable": false
+      },
+      "student_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "deal_id": {
+        "type": "INTEGER",
+        "nullable": true
+      },
+      "stage": {
+        "type": "VARCHAR(128)",
+        "nullable": false
+      },
+      "recipient": {
+        "type": "VARCHAR(255)",
+        "nullable": false
+      },
+      "commission_percent": {
+        "type": "NUMERIC(5, 2)",
+        "nullable": true
+      },
+      "created_by": {
+        "type": "INTEGER",
+        "nullable": false
+      },
+      "voided_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": true
+      },
+      "void_reason": {
+        "type": "TEXT",
+        "nullable": true
+      },
+      "created_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      },
+      "updated_at": {
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "nullable": false
+      }
+    },
+    "foreign_keys": [
+      {
+        "columns": [
+          "student_id"
+        ],
+        "target": "enrolled_students.id"
+      },
+      {
+        "columns": [
+          "created_by"
+        ],
+        "target": "users.id"
+      },
+      {
+        "columns": [
+          "category_id"
+        ],
+        "target": "finance_categories.id"
+      },
+      {
+        "columns": [
+          "deal_id"
+        ],
+        "target": "deals.id"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "unique_constraints": [],
+    "indexes": [
+      {
+        "name": "ix_finance_transactions_category_id",
+        "columns": [
+          "category_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_finance_transactions_currency",
+        "columns": [
+          "currency"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_finance_transactions_occurred_on",
+        "columns": [
+          "occurred_on"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_finance_transactions_student_id",
+        "columns": [
+          "student_id"
+        ],
+        "unique": false
+      }
+    ]
+  }
+}

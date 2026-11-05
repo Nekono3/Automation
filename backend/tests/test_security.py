@@ -406,7 +406,7 @@ def test_all_existing_api_routes_have_explicit_permission_policy():
         if (
             not path.startswith("/api/")
             or path.startswith("/api/webhooks/")
-            or path in ("/api/health", "/api/auth/login", "/api/auth/accept-invitation")
+            or path in ("/api/health", "/api/ready", "/api/auth/login", "/api/auth/accept-invitation")
         ):
             continue
         for method in operations:
@@ -415,7 +415,11 @@ def test_all_existing_api_routes_have_explicit_permission_policy():
 
 
 @pytest.mark.asyncio
-async def test_login_rate_limit_is_enforced(workspace):
+async def test_login_rate_limit_is_enforced(workspace, monkeypatch):
+    from types import SimpleNamespace
+    from app.core import service_auth
+    # A fixed-minute limiter must be tested within one controlled window.
+    monkeypatch.setattr(service_auth, 'time', SimpleNamespace(time=lambda: 1800000000))
     c, _, _, _, _ = workspace
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app, client=("synthetic-rate-peer", 1234)),

@@ -72,7 +72,7 @@ def policy(path, method):
         if path.endswith("/sync"):
             return "imports.manage"
         if path.endswith("/stats"):
-            return "students.read_all"
+            return ("students.read_all", "students.read_assigned")
         if method == "DELETE":
             return "students.archive"
         if method == "POST":
@@ -123,7 +123,7 @@ async def authorize_request(
     path = request.url.path
     if (
         not path.startswith("/api/")
-        or path == "/api/health"
+        or path in ("/api/health", "/api/ready")
         or path.startswith("/api/webhooks/")
         or path in ("/api/auth/login", "/api/auth/accept-invitation")
     ):
@@ -135,6 +135,13 @@ async def authorize_request(
             user, *((permissions,) if isinstance(permissions, str) else permissions)
         )
     p = request.path_params
+    # Dependencies run before FastAPI validates typed path parameters.
+    try:
+        for name in ('conversation_id', 'customer_id', 'student_id', 'document_id', 'deal_id', 'checklist_id', 'booking_id'):
+            if name in p:
+                int(p[name])
+    except (ValueError, TypeError):
+        raise HTTPException(422, "Некорректный идентификатор") from None
     write = request.method not in ("GET", "HEAD")
     if "conversation_id" in p:
         await check_conversation(db, user, int(p["conversation_id"]))
@@ -174,7 +181,14 @@ async def authorize_request(
             raise HTTPException(404, "Консультация не найдена")
         await check_customer(db, user, booking.customer_id, write)
     if write and path in ("/api/deals", "/api/bookings"):
-        body = await request.json()
+        try:
+            body = await request.json()
+            if not isinstance(body, dict):
+                raise ValueError()
+            if body.get('customer_id') is not None:
+                body['customer_id'] = int(body['customer_id'])
+        except (ValueError, TypeError):
+            raise HTTPException(422, "Некорректное тело запроса") from None
         if body.get("customer_id") is not None:
             await check_customer(db, user, int(body["customer_id"]), True)
         target = body.get("assigned_user_id")

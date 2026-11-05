@@ -1,0 +1,7 @@
+.env*
+node_modules
+.next
+test-results
+playwright-report
+public/docs
+public/manual

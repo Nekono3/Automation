@@ -281,7 +281,7 @@ export function ChatPanel({
                 {(() => {
                   const isDeleted =
                     message.status === "deleted_by_user" ||
-                    (message as any).extra_data?.deleted_in_whatsapp;
+                    Boolean(message.extra_data?.deleted_in_whatsapp);
 
                   return (
                     <div

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useAuth } from '@/contexts/AuthContext';
+import { can } from '@/permissions';
 import { api } from "@/lib/api";
 import { EnrolledStudent, EnrolledStudentsStats } from "@/lib/types";
 import {
@@ -31,6 +33,9 @@ import { PageHeader, EmptyState, DataError } from "@/components/WorkspaceUI";
 export const dynamic = "force-dynamic";
 
 export default function EnrolledStudentsPage() {
+  const {user} = useAuth();
+  const canReadFinance = can(user, 'finance.read');
+  const canManageFinance = can(user, 'finance.manage');
   const [students, setStudents] = useState<EnrolledStudent[]>([]);
   const [stats, setStats] = useState<EnrolledStudentsStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -164,10 +169,12 @@ export default function EnrolledStudentsPage() {
     }
     setSaving(true);
     try {
+      const financialFields = new Set(['contract_amount','paid_amount','remaining_amount','seller_commission_paid','mentor_commission_paid','next_payment_condition','last_payment_date','finance_comment','full_payment_received']);
+      const payload = Object.fromEntries(Object.entries(form).filter(([key]) => canManageFinance || !financialFields.has(key)));
       if (editingStudent) {
-        await api.updateEnrolledStudent(editingStudent.id, form);
+        await api.updateEnrolledStudent(editingStudent.id, payload);
       } else {
-        await api.createEnrolledStudent(form);
+        await api.createEnrolledStudent(payload);
       }
       setIsModalOpen(false);
       setStatusMessage("Данные студента успешно сохранены!");
@@ -214,12 +221,12 @@ export default function EnrolledStudentsPage() {
   return (
     <div className="workspace-page">
       <PageHeader
-        eyebrow="КУРАТОРСТВО И ФИНАНСЫ"
-        title="Студенты: процесс поступления и оплаты"
+        eyebrow={canReadFinance ? "КУРАТОРСТВО И ФИНАНСЫ" : "КУРАТОРСТВО"}
+        title={canReadFinance ? "Студенты: процесс поступления и оплаты" : "Студенты: процесс поступления"}
         description="Контроль визовых этапов, приглашений, кураторов и взаиморасчетов по договорам поступления."
       >
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
+          {can(user, 'imports.manage') && (<button
             onClick={handleSyncSpreadsheet}
             disabled={syncing}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
@@ -227,15 +234,15 @@ export default function EnrolledStudentsPage() {
           >
             <RefreshCw className={`w-3.5 h-3.5 text-[#283876] ${syncing ? "animate-spin" : ""}`} />
             <span>{syncing ? "Синхронизация..." : "Синхронизировать с таблицей"}</span>
-          </button>
+          </button>)}
 
-          <button
+          {can(user, 'students.create') && (<button
             onClick={handleOpenCreate}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#283876] hover:bg-[#1E2C60] text-white transition-colors shadow-md shadow-[#283876]/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>+ Добавить студента</span>
-          </button>
+          </button>)}
         </div>
       </PageHeader>
 
@@ -310,7 +317,7 @@ export default function EnrolledStudentsPage() {
               <span>Процесс поступления (Process)</span>
             </button>
 
-            <button
+            {canReadFinance && (<button
               onClick={() => setViewMode("finance")}
               className={`px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                 viewMode === "finance"
@@ -320,9 +327,9 @@ export default function EnrolledStudentsPage() {
             >
               <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
               <span>Финансы и оплата (Finance)</span>
-            </button>
+            </button>)}
 
-            <button
+            {canReadFinance && (<button
               onClick={() => setViewMode("all")}
               className={`px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
                 viewMode === "all"
@@ -331,7 +338,7 @@ export default function EnrolledStudentsPage() {
               }`}
             >
               <span>Сводная (Все поля)</span>
-            </button>
+            </button>)}
           </div>
 
           {/* Search Input */}
@@ -589,20 +596,20 @@ export default function EnrolledStudentsPage() {
                     {/* Actions */}
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
+                        {can(user, 'students.update_all', 'students.update_assigned') && (<button
                           onClick={() => handleOpenEdit(stu)}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-[#283876] hover:bg-blue-50 transition-colors cursor-pointer"
                           title="Редактировать студента"
                         >
                           <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
+                        </button>)}
+                        {can(user, 'students.archive') && (<button
                           onClick={() => setDeletingStudent(stu)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                           title="Удалить студента"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </button>)}
                       </div>
                     </td>
                   </tr>
@@ -721,6 +728,7 @@ export default function EnrolledStudentsPage() {
                 />
               </div>
 
+              {canManageFinance && <>
               {/* Finance Section Header */}
               <div className="pt-2 border-t border-slate-100">
                 <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2">
@@ -788,8 +796,9 @@ export default function EnrolledStudentsPage() {
               </div>
 
               {/* Checkboxes */}
+              </>}
               <div className="flex flex-wrap items-center gap-6 pt-2">
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                {canManageFinance && (<label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.seller_commission_paid}
@@ -797,9 +806,9 @@ export default function EnrolledStudentsPage() {
                     className="w-4 h-4 rounded text-[#283876] border-slate-300 focus:ring-[#283876]"
                   />
                   <span>% Сатуучу төлөндү</span>
-                </label>
+                </label>)}
 
-                <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                {canManageFinance && (<label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.mentor_commission_paid}
@@ -807,7 +816,7 @@ export default function EnrolledStudentsPage() {
                     className="w-4 h-4 rounded text-[#283876] border-slate-300 focus:ring-[#283876]"
                   />
                   <span>% Ментор төлөндү</span>
-                </label>
+                </label>)}
 
                 <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
                   <input

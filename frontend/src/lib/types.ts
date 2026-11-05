@@ -23,7 +23,7 @@ export interface StudentProfile {
   current_grade_or_status?: string;
   school_or_university?: string;
   gpa?: number;
-  language_tests: Record<string, any>;
+  language_tests: Record<string, unknown>;
   target_countries: string[];
   target_degree?: string;
   planned_year?: number;
@@ -106,7 +106,8 @@ export interface Message {
   direction: 'inbound' | 'outbound';
   sender_type: 'customer' | 'ai' | 'employee' | 'system';
   text: string;
-  attachments?: any[];
+  attachments?: unknown[];
+  extra_data?: Record<string, unknown>;
   status: string;
   created_at: string;
 }

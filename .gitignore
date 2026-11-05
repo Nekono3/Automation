@@ -67,6 +67,9 @@ backend/app/data/kpi_sellers.xlsx
 *.dump
 *.zip
 artifacts/
+.staging/
 
 frontend/test-results/
 frontend/playwright-report/
+
+frontend/test-results-staging/

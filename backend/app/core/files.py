@@ -9,9 +9,16 @@ LIMIT = 10 * 1024 * 1024
 
 
 def validate_document(content, content_type, name):
-    name = PurePath(name.replace("\\", "/")).name
-    if not name or any(ord(c) < 32 for c in name):
+    original = name.replace("\\", "/")
+    name = PurePath(original).name
+    if not name or original != name or any(ord(c) < 32 for c in name):
         raise HTTPException(422, "Некорректное имя файла")
+    extensions = {
+        'application/pdf': {'.pdf'}, 'image/jpeg': {'.jpg', '.jpeg'}, 'image/png': {'.png'},
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {'.docx'},
+    }
+    if PurePath(name).suffix.lower() not in extensions.get(content_type, set()):
+        raise HTTPException(415, "Расширение файла не соответствует разрешённому формату")
     if not content or len(content) > LIMIT:
         raise HTTPException(413, "Размер документа: от 1 байта до 10 МБ")
     valid = False
@@ -37,7 +44,7 @@ def validate_document(content, content_type, name):
                     <= set(archive.namelist())
                     and all(
                         not i.filename.startswith(("/", "\\"))
-                        and ".." not in PurePath(i.filename).parts
+                        and ".." not in PurePath(i.filename.replace("\\", "/")).parts
                         for i in entries
                     )
                     and not any(i.filename.endswith("vbaProject.bin") for i in entries)

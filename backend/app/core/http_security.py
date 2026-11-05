@@ -1,4 +1,5 @@
 from uuid import uuid4
+from sqlalchemy.exc import SQLAlchemyError
 from app.models.audit import AuditLog
 from app.database import AsyncSessionLocal
 
@@ -14,16 +15,24 @@ async def security_response(request, call_next):
     actor = getattr(request.state, "actor_id", None)
     if actor is not None and request.method not in ("GET", "HEAD", "OPTIONS"):
         route = request.scope.get("route")
-        async with AsyncSessionLocal() as db:
-            db.add(
-                AuditLog(
-                    user_id=actor,
-                    action=f"api.{request.method.lower()}.{response.status_code}",
-                    entity="api",
-                    extra_data={"route": getattr(route, "path", "unknown")},
+        try:
+            async with AsyncSessionLocal() as db:
+                db.add(
+                    AuditLog(
+                        user_id=actor,
+                        action=f"api.{request.method.lower()}.{response.status_code}",
+                        entity="api",
+                        extra_data={"route": getattr(route, "path", "unknown")},
+                    )
                 )
-            )
-            await db.commit()
+                await db.commit()
+        except (SQLAlchemyError, OSError, TimeoutError):
+            import logging
+            from starlette.responses import JSONResponse
+            logging.getLogger('insta.audit').error('Audit storage unavailable')
+            # The business commit may have completed: callers must not auto-retry writes.
+            response = JSONResponse({'detail': 'Сервис временно недоступен'}, status_code=503,
+                                    headers={'Cache-Control': 'no-store'})
     return response
 
 

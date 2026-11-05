@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -140,13 +140,14 @@ async def send_operator_message(
     payload: OperatorMessage,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    idempotency_key: str | None = Header(default=None, min_length=8, max_length=128),
 ):
     conversation = await ConversationService.get_by_id(db, conversation_id)
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    from app.services.message_delivery import deliver
-    return await deliver(db,conversation,payload.text,actor_id=current_user.id)
+    from app.services.send_idempotency import send_once
+    return await send_once(db, conversation, payload.text, current_user.id, idempotency_key)
 
 
 

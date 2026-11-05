@@ -22,6 +22,7 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import Link from "next/link";
+import {can, navigationPermissions, roleLabel as getRoleLabel} from "@/permissions";
 import { Avatar, Brand } from "@/components/WorkspaceUI";
 import { InstagramIcon, WhatsAppIcon } from "@/components/ChannelIcons";
 
@@ -41,14 +42,6 @@ const navigation = [
   { href: "/dashboard/whatsapp", icon: WhatsAppIcon, label: "WhatsApp" },
 ];
 
-const getRoleLabel = (role?: string, isSuperuser?: boolean) => {
-  if (isSuperuser || role === "admin") return "Администратор";
-  if (role === "lead_manager") return "Главный менеджер (РОП)";
-  if (role === "manager") return "Менеджер";
-  if (role === "mentor") return "Ментор";
-  return "Сотрудник";
-};
-
 export default function DashboardLayout({
   children,
 }: {
@@ -62,16 +55,10 @@ export default function DashboardLayout({
   const menuButton = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const current = navigation.find((item) => item.href === pathname);
-  const userRole = user?.role || (user?.is_superuser ? "admin" : "manager");
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Оператор";
-  const roleLabel = getRoleLabel(user?.role, user?.is_superuser);
+  const roleLabel = getRoleLabel(user?.role);
 
-  const filteredNav = navigation.filter((item) => {
-    if (userRole === "manager" || userRole === "mentor") {
-      if (["/dashboard/automations", "/dashboard/whatsapp", "/dashboard/finance"].includes(item.href)) return false;
-    }
-    return true;
-  });
+  const filteredNav = navigation.filter(item => can(user,...(navigationPermissions[item.href] || [])));
 
   useEffect(() => {
     if (!loading && !isAuthenticated) router.replace("/");

@@ -20,72 +20,19 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("insta.app")
+for provider_logger in ("httpx", "httpcore", "mistralai"):
+    logging.getLogger(provider_logger).setLevel(logging.WARNING)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager: connects to DB, creates tables, seeds defaults."""
     logger.info("Starting up %s in %s mode...", settings.APP_NAME, settings.ENVIRONMENT)
-    try:
-        # Create tables on startup in development
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-            await conn.execute(
-                text(
-                    "ALTER TABLE conversations ADD COLUMN IF NOT EXISTS whatsapp_account_id INTEGER "
-                    "REFERENCES whatsapp_accounts(id) ON DELETE SET NULL;"
-                )
-            )
-            await conn.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_account_id INTEGER "
-                    "REFERENCES whatsapp_accounts(id) ON DELETE SET NULL;"
-                )
-            )
-        logger.info("Database tables initialized successfully.")
-
-        # Seed default consulting services & default admin
-        async with AsyncSessionLocal() as session:
-            seeded_services = await ServiceCatalogService.seed_default_services(session)
-            if seeded_services:
-                logger.info("Seeded %d default consulting services.", len(seeded_services))
-
-            seeded_admin = await UserService.seed_initial_admin(session)
-            if seeded_admin:
-                logger.info("Seeded initial administrator account: %s", seeded_admin.email)
-
-            from app.services.automation_service import AutomationService
-            seeded_triggers = await AutomationService.seed_default_consulteam_triggers(session)
-            if seeded_triggers:
-                logger.info("Consulteam automation triggers active: %d", len(seeded_triggers))
-
-            from app.services.university_program_service import UniversityProgramService
-            seeded_programs = await UniversityProgramService.seed_default_programs(session)
-            if seeded_programs:
-                logger.info("Consulteam university programs loaded: %d", seeded_programs)
-
-            from app.services.seller_kpi_service import SellerKPIService
-            seeded_kpi = await SellerKPIService.seed_default_kpi(session)
-            if seeded_kpi:
-                logger.info("Consulteam seller KPI loaded: %d records", seeded_kpi)
-
-            from app.services.enrolled_student_service import EnrolledStudentService
-            seeded_students = await EnrolledStudentService.seed_default_students(session)
-            if seeded_students:
-                logger.info("Consulteam enrolled students loaded: %d", seeded_students)
-
-            from app.services.whatsapp_service import WhatsAppAccountService
-            seeded_wa = await WhatsAppAccountService.seed_default_accounts(session)
-            if seeded_wa:
-                logger.info("Consulteam WhatsApp accounts initialized: %d", seeded_wa)
-
-            seeded_staff = await UserService.seed_default_staff_users(session)
-            if seeded_staff:
-                logger.info("Consulteam staff accounts seeded/updated: %d", seeded_staff)
-
-
-    except Exception as exc:
-        logger.error("Failed to initialize database on startup: %s", exc)
+    # Ordinary startup never mutates schema or imports spreadsheets/staff defaults.
+    async with engine.connect() as conn:
+        revision = await conn.scalar(text("SELECT version_num FROM alembic_version"))
+        if revision != "0002_security":
+            raise RuntimeError("Database migration required: run the reviewed Alembic upgrade")
 
     yield
 
@@ -94,20 +41,27 @@ async def lifespan(app: FastAPI):
     logger.info("Database connection pool disposed.")
 
 
+from app.core.authorization import authorize_request
+
 app = FastAPI(
+    dependencies=[Depends(authorize_request)],
     title=settings.APP_NAME,
     version="0.1.0",
     description="AI-Powered Customer Management & Consultation Booking Platform",
     lifespan=lifespan,
 )
 
+from app.core.http_security import security_response,RequestSizeLimit
+app.add_middleware(RequestSizeLimit)
+app.middleware("http")(security_response)
+
 # CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
 )
 
 # Include Routers
@@ -142,6 +96,8 @@ app.include_router(kpi_router)
 app.include_router(enrolled_students_router)
 app.include_router(whatsapp_router, prefix="/api")
 app.include_router(company_router)
+from app.modules.security.router import router as security_router
+app.include_router(security_router)
 
 
 # Mount Static Files (PDF guides & uploaded media)
@@ -153,7 +109,7 @@ os.makedirs(os.path.join(static_dir, "guides"), exist_ok=True)
 os.makedirs(os.path.join(static_dir, "uploads"), exist_ok=True)
 
 app.mount("/guides", StaticFiles(directory=os.path.join(static_dir, "guides")), name="guides")
-app.mount("/uploads", StaticFiles(directory=os.path.join(static_dir, "uploads")), name="uploads")
+
 
 
 

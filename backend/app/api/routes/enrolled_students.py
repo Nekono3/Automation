@@ -4,10 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.api.deps import get_current_user
-from app.api.routes.company import audit, require_management
+from app.api.routes.company import audit
 from app.models.company import AdmissionLink, FinanceTransaction, StudentDocument
 from sqlalchemy import select, func
 from app.models.user import User
+from app.core.projections import student_view, FINANCIAL_FIELDS
+from app.core.permissions import require
 from app.schemas.enrolled_student import (
     EnrolledStudentCreate,
     EnrolledStudentUpdate,
@@ -33,8 +35,9 @@ async def list_enrolled_students(
     current_user: User = Depends(get_current_user),
 ):
     """List all tracked enrolled students with filter and search."""
-    return await EnrolledStudentService.list_students(
+    rows = await EnrolledStudentService.list_students(
         session=db,
+        user=current_user,
         search=search,
         country=country,
         manager=manager,
@@ -44,6 +47,7 @@ async def list_enrolled_students(
         skip=skip,
         limit=limit,
     )
+    return [student_view(row,current_user) for row in rows]
 
 
 @router.get("/stats", response_model=EnrolledStudentsStats)
@@ -64,7 +68,7 @@ async def get_enrolled_student(
     student = await EnrolledStudentService.get_by_id(session=db, student_id=student_id)
     if not student:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
-    return student
+    return student_view(student,current_user)
 
 
 @router.post("", response_model=EnrolledStudentRead, status_code=status.HTTP_201_CREATED)
@@ -85,6 +89,8 @@ async def update_enrolled_student(
     current_user: User = Depends(get_current_user),
 ):
     """Update process stage, next action, risk, or financial details of a student."""
+    if FINANCIAL_FIELDS & data.model_fields_set:
+        require(current_user,"finance.manage")
     previous = await EnrolledStudentService.get_by_id(session=db, student_id=student_id)
     if not previous:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -94,7 +100,7 @@ async def update_enrolled_student(
     updated = await EnrolledStudentService.update_student(session=db, student_id=student_id, data=data)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
-    return updated
+    return student_view(updated,current_user)
 
 
 @router.delete("/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -104,7 +110,6 @@ async def delete_enrolled_student(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a student from tracker."""
-    require_management(current_user)
     for model in (AdmissionLink, FinanceTransaction, StudentDocument):
         if await db.scalar(select(func.count()).select_from(model).where(model.student_id == student_id)):
             raise HTTPException(409, "Ученик связан с CRM, платежами или документами. Удаление заблокировано")
@@ -121,7 +126,6 @@ async def sync_students_spreadsheet(
     current_user: User = Depends(get_current_user),
 ):
     """Re-sync enrolled students from Google Sheets process and finance sheets."""
-    require_management(current_user)
     if force:
         for model in (AdmissionLink, FinanceTransaction, StudentDocument):
             if await db.scalar(select(func.count()).select_from(model)):

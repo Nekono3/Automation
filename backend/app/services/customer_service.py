@@ -143,8 +143,12 @@ class CustomerService:
         search: Optional[str] = None,
         skip: int = 0,
         limit: int = 50,
+            user=None,
     ) -> List[Customer]:
         query = select(Customer)
+        if user is not None:
+            from app.core.permissions import customer_clause
+            query=query.where(await customer_clause(db,user))
         if search:
             search_filter = f"%{search}%"
             query = query.where(

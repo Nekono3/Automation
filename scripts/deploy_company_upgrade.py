@@ -31,6 +31,8 @@ if not args.apply:
     print('Patch and frontend build verified. Pass --apply to back up and switch services.')
     sys.exit(0)
 
+raise SystemExit("Legacy deploy disabled for the security release. Follow docs/deployment/PRODUCTION.md after staging approval.")
+
 os.umask(0o077)
 backup = Path('/root/insta-backups') / ('company-'+datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S'))
 backup.mkdir(parents=True, mode=0o700)

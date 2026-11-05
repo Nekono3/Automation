@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { User } from '@/lib/types';
+import { landing } from '@/permissions';
 
 interface AuthContextType {
   user: User | null;
@@ -30,28 +31,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
+    let active = true;
     const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-      api.getMe()
-        .then((userData) => {
-          setUser(userData);
-          setLoading(false);
-        })
-        .catch(() => {
-          logout();
-          setLoading(false);
-        });
+    if (!storedToken) {
+      queueMicrotask(() => { if (active) setLoading(false); });
     } else {
-      setLoading(false);
+      api.getMe().then(userData => {
+        if (!active) return;
+        setToken(storedToken);
+        setUser(userData);
+        setLoading(false);
+      }).catch(() => {
+        if (!active) return;
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+        router.replace('/');
+      });
     }
-  }, []);
+    return () => { active = false; };
+  }, [router]);
 
   const login = (newToken: string, userData: User) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(userData);
-    router.push('/dashboard');
+    router.push(landing(userData));
   };
 
   const logout = () => {

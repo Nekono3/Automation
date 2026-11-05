@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import {useRouter} from "next/navigation";
+import {useAuth} from "@/contexts/AuthContext";
+import {can,landing} from "@/permissions";
 import { api } from "@/lib/api";
 import { Booking, Conversation, DashboardStats, Deal } from "@/lib/types";
 import {
@@ -45,6 +48,14 @@ const stages = [
 ];
 
 export default function DashboardPage() {
+  const {user}=useAuth();
+  const router=useRouter();
+  const allowed=can(user,'dashboard.read_all');
+  useEffect(() => { if(user && !allowed) router.replace(landing(user)); },[user,allowed,router]);
+  if(!allowed) return <div className="workspace-loading" role="status">Открываем ваш рабочий раздел…</div>;
+  return <DirectorOverview />;
+}
+function DirectorOverview() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);

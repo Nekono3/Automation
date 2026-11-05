@@ -39,3 +39,5 @@ __all__ = [
     "SystemSetting",
 ]
 
+from app.modules.security.models import (Role, Permission, RolePermission, UserRole, UserPermission,
+    Team, TeamMember, LeadAssignment, StudentAssignment, ConversationAssignment, EmployeeInvitation)

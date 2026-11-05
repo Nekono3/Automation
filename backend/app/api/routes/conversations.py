@@ -27,7 +27,7 @@ router = APIRouter(prefix="/api/conversations", tags=["Conversations"])
 
 
 class OperatorMessage(BaseModel):
-    text: str
+    text: str = __import__("pydantic").Field(min_length=1,max_length=10000)
 
 
 @router.get("/global-ai", response_model=GlobalAIModeRead)
@@ -86,12 +86,10 @@ async def list_conversations(
     if mode:
         query = query.where(Conversation.mode == mode)
 
-    # Role-based scoping: regular managers only see chats for their assigned WhatsApp number
-    if current_user.role == "manager" and current_user.whatsapp_account_id:
-        query = query.where(Conversation.whatsapp_account_id == current_user.whatsapp_account_id)
-    elif whatsapp_account_id is not None:
-        query = query.where(Conversation.whatsapp_account_id == whatsapp_account_id)
-
+    from app.core.permissions import conversation_clause
+    query=query.where(await conversation_clause(db,current_user))
+    if whatsapp_account_id is not None:
+        query=query.where(Conversation.whatsapp_account_id==whatsapp_account_id)
     query = query.offset(skip).limit(limit)
     res = await db.execute(query)
     return list(res.scalars().all())
@@ -107,9 +105,6 @@ async def get_conversation(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    if current_user.role == "manager" and current_user.whatsapp_account_id:
-        if conversation.whatsapp_account_id and conversation.whatsapp_account_id != current_user.whatsapp_account_id:
-            raise HTTPException(status_code=403, detail="Доступ к чатам других номеров ограничен")
 
     return conversation
 
@@ -127,9 +122,6 @@ async def list_messages(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    if current_user.role == "manager" and current_user.whatsapp_account_id:
-        if conversation.whatsapp_account_id and conversation.whatsapp_account_id != current_user.whatsapp_account_id:
-            raise HTTPException(status_code=403, detail="Доступ к чатам других номеров ограничен")
 
     query = (
         select(Message)
@@ -153,50 +145,8 @@ async def send_operator_message(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    if current_user.role == "manager" and current_user.whatsapp_account_id:
-        if conversation.whatsapp_account_id and conversation.whatsapp_account_id != current_user.whatsapp_account_id:
-            raise HTTPException(status_code=403, detail="Доступ к чатам других номеров ограничен")
-        
-    channel = conversation.channel or "instagram"
-    msg = Message(
-        conversation_id=conversation.id,
-        customer_id=conversation.customer_id,
-        channel=channel,
-        direction="outbound",
-        sender_type="employee",
-        extra_data={"user_id": current_user.id},
-        text=payload.text,
-        status="sent"
-    )
-    db.add(msg)
-    
-    conversation.last_message_at = msg.created_at
-    conversation.unread_count = 0
-    await db.commit()
-    await db.refresh(msg)
-    
-    if channel == "whatsapp" and (conversation.customer.whatsapp_id or conversation.customer.phone):
-        from app.integrations.whatsapp.client import WhatsAppClient
-        wa_client = WhatsAppClient()
-        target_phone = conversation.customer.whatsapp_id or conversation.customer.phone
-        account_id = None
-        if conversation.whatsapp_account:
-            account_id = conversation.whatsapp_account.account_id
-        elif conversation.whatsapp_account_id:
-            from app.models.whatsapp_account import WhatsAppAccount
-            acc_res = await db.execute(
-                select(WhatsAppAccount).where(WhatsAppAccount.id == conversation.whatsapp_account_id)
-            )
-            acc = acc_res.scalar_one_or_none()
-            if acc:
-                account_id = acc.account_id
-
-        await wa_client.send_text_message(target_phone, payload.text, account_id=account_id)
-    elif conversation.customer.instagram_id:
-        client = InstagramClient()
-        await client.send_text_message(conversation.customer.instagram_id, payload.text)
-    
-    return msg
+    from app.services.message_delivery import deliver
+    return await deliver(db,conversation,payload.text,actor_id=current_user.id)
 
 
 

@@ -119,8 +119,12 @@ class EnrolledStudentService:
         is_completed: Optional[bool] = None,
         skip: int = 0,
         limit: int = 100,
+            user=None,
     ) -> List[EnrolledStudent]:
         stmt = select(EnrolledStudent)
+        if user is not None:
+            from app.core.permissions import student_clause
+            stmt=stmt.where(await student_clause(session,user))
 
         if search:
             pattern = f"%{search.strip()}%"

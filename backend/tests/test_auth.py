@@ -33,7 +33,7 @@ async def test_auth_login_and_me_flow(db_session):
         assert me_resp.status_code == 200
         user_info = me_resp.json()
         assert user_info["email"] == settings.FIRST_ADMIN_EMAIL.lower()
-        assert user_info["role"] == "admin"
+        assert user_info["role"] == "director"
 
         # 3. Bad password login
         bad_resp = await client.post(

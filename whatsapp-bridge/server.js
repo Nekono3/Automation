@@ -4,10 +4,22 @@ const QRCode = require('qrcode');
 const pino = require('pino');
 const path = require('path');
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 
 const app = express();
-app.use(express.json());
+const { guard, validAccount, strictSession } = require('./security');
+const API_TOKEN = process.env.BRIDGE_API_TOKEN || '';
+const WEBHOOK_TOKEN = process.env.BRIDGE_WEBHOOK_TOKEN || '';
+if (API_TOKEN.length < 32 || WEBHOOK_TOKEN.length < 32 || API_TOKEN === WEBHOOK_TOKEN) throw new Error('Bridge service credentials required');
+app.disable('x-powered-by');
+app.use(guard(API_TOKEN));
+app.use(express.json({limit:'256kb'}));
+app.use((req,res,next) => {
+  const match=req.path.match(/^\/api\/sessions\/([^/]+)\/(?:logout|restart)$/);
+  if (match && !validAccount(match[1])) return res.status(400).json({error:'Invalid session id'});
+  next();
+});
 
 const PORT = process.env.PORT || 3001;
 const CRM_WEBHOOK_URL = process.env.CRM_WEBHOOK_URL || 'http://127.0.0.1:8000/webhooks/whatsapp-bridge';
@@ -188,7 +200,6 @@ class SessionInstance {
 
           if (!text.trim()) continue;
 
-          console.log(`[WhatsApp Bridge][${this.sessionId}] ${isFromMe ? 'OUT' : 'IN'} [${remoteJid}]: ${text.slice(0, 50)}`);
 
           if (!isFromMe) {
             this.forwardToCRM({
@@ -223,21 +234,24 @@ class SessionInstance {
   forwardToCRM(payloadObj) {
     try {
       const payload = JSON.stringify(payloadObj);
-      const req = http.request(
+      const req = (CRM_WEBHOOK_URL.startsWith('https:') ? https : http).request(
         CRM_WEBHOOK_URL,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${WEBHOOK_TOKEN}`,
             'Content-Length': Buffer.byteLength(payload),
           },
         },
         (res) => {
+          res.resume();
           if (res.statusCode >= 400) {
             console.error(`[WhatsApp Bridge][${this.sessionId}] CRM returned HTTP ${res.statusCode}`);
           }
         }
       );
+      req.setTimeout(8000, () => req.destroy(new Error('CRM timeout')));
       req.on('error', (err) => {
         console.error(`[WhatsApp Bridge][${this.sessionId}] CRM forward error:`, err.message);
       });
@@ -318,14 +332,11 @@ class SessionInstance {
     let sent;
     try {
       sent = await this.sock.sendMessage(jid, { text });
-      console.log(`[WhatsApp Bridge][${this.sessionId}] Sent to ${jid}: ${text.slice(0, 40)}`);
     } catch (sendErr) {
       if (jid.endsWith('@s.whatsapp.net')) {
         const fallbackLid = `${jid.replace('@s.whatsapp.net', '')}@lid`;
-        console.warn(`[WhatsApp Bridge][${this.sessionId}] Error sending to ${jid}. Retrying fallback to ${fallbackLid}...`);
         sent = await this.sock.sendMessage(fallbackLid, { text });
         jid = fallbackLid;
-        console.log(`[WhatsApp Bridge][${this.sessionId}] Fallback sent to ${jid}: ${text.slice(0, 40)}`);
       } else {
         throw sendErr;
       }
@@ -357,7 +368,7 @@ function initAllSessions() {
   const defaults = ['account_1', 'account_2', 'account_3'];
   const dirs = fs.readdirSync(AUTH_BASE_DIR).filter((f) => {
     try {
-      return fs.statSync(path.join(AUTH_BASE_DIR, f)).isDirectory();
+      return validAccount(f) && fs.statSync(path.join(AUTH_BASE_DIR, f)).isDirectory();
     } catch (e) {
       return false;
     }
@@ -394,7 +405,7 @@ app.get('/api/sessions/:sessionId', (req, res) => {
 // Create / Start session
 app.post('/api/sessions/start', (req, res) => {
   const { sessionId, name, role } = req.body;
-  if (!sessionId) {
+  if (!validAccount(sessionId)) {
     return res.status(400).json({ error: 'Missing sessionId' });
   }
   const session = getOrCreateSession(sessionId, { name, role });
@@ -439,28 +450,11 @@ app.post('/send', async (req, res) => {
     return res.status(400).json({ error: 'Missing "to" or "text" in body' });
   }
 
-  let session = null;
-  if (account_id && sessions.has(account_id)) {
-    session = sessions.get(account_id);
-  } else if (sessions.has('account_1') && sessions.get('account_1').connectionStatus === 'connected') {
-    session = sessions.get('account_1');
-  } else {
-    // Pick first connected session
-    for (const s of sessions.values()) {
-      if (s.connectionStatus === 'connected') {
-        session = s;
-        break;
-      }
-    }
-  }
-
-  if (!session || session.connectionStatus !== 'connected') {
-    console.error(`[WhatsApp Bridge] Cannot send to ${to}: requested session [${account_id}] is not connected.`);
-    return res.status(503).json({ error: `WhatsApp session '${account_id || 'default'}' is not connected` });
-  }
+  let session;
+  try { session = strictSession(sessions, account_id); }
+  catch (error) { return res.status(error.status).json({error:error.message}); }
 
   try {
-    console.log(`[WhatsApp Bridge] Sending WhatsApp message to ${to} via session [${session.sessionId}] (requested: ${account_id || 'auto'})`);
     const result = await session.sendMessage(to, text);
     res.json(result);
   } catch (err) {
@@ -722,7 +716,7 @@ app.get(['/', '/qr', '/whatsapp-qr'], (req, res) => {
 });
 
 // Start Express server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, process.env.BRIDGE_HOST || '127.0.0.1', () => {
   console.log(`[WhatsApp Bridge] Multi-account server running on port ${PORT}`);
   initAllSessions();
 });

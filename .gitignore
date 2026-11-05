@@ -55,3 +55,18 @@ Thumbs.db
 postgres_data/
 # Authenticated student document storage
 backend/private_documents/
+
+# Private imports, provider sessions and release artifacts
+.env.*
+!.env.example
+!*.env.example
+whatsapp-bridge/node_modules/
+whatsapp-bridge/auth_info_baileys/
+backend/app/data/students.xlsx
+backend/app/data/kpi_sellers.xlsx
+*.dump
+*.zip
+artifacts/
+
+frontend/test-results/
+frontend/playwright-report/

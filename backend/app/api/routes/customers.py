@@ -19,7 +19,7 @@ async def list_customers(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await CustomerService.list_customers(db, search, skip, limit)
+    return await CustomerService.list_customers(db, search, skip, limit, user=current_user)
 
 
 @router.get("/{customer_id}", response_model=CustomerRead)

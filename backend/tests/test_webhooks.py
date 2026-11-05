@@ -1,3 +1,4 @@
+import json,hmac,hashlib
 import uuid
 import pytest
 from httpx import AsyncClient, ASGITransport
@@ -6,6 +7,12 @@ from app.config import settings
 from app.services.customer_service import CustomerService
 from app.services.conversation_service import ConversationService
 
+
+
+async def signed_post(client,path,payload):
+    body=json.dumps(payload).encode()
+    signature=hmac.new(settings.META_APP_SECRET.encode(),body,hashlib.sha256).hexdigest()
+    return await client.post(path,content=body,headers={'Content-Type':'application/json','X-Hub-Signature-256':'sha256='+signature})
 
 @pytest.mark.asyncio
 async def test_meta_webhook_verification():
@@ -67,7 +74,7 @@ async def test_meta_webhook_message_event_and_idempotency(db_session):
         }
 
         # First delivery of webhook event
-        resp1 = await client.post("/webhooks/instagram", json=payload)
+        resp1 = await signed_post(client,"/webhooks/instagram",payload)
         assert resp1.status_code == 200
         data1 = resp1.json()
         assert data1["status"] == "ok"
@@ -82,7 +89,7 @@ async def test_meta_webhook_message_event_and_idempotency(db_session):
         assert conv is not None
 
         # Redelivery of same webhook event (Meta retry simulation)
-        resp2 = await client.post("/webhooks/instagram", json=payload)
+        resp2 = await signed_post(client,"/webhooks/instagram",payload)
         assert resp2.status_code == 200
         data2 = resp2.json()
         assert data2["status"] == "ok"
@@ -121,6 +128,11 @@ async def test_whatsapp_webhook_verification():
 
 @pytest.mark.asyncio
 async def test_whatsapp_webhook_message_event_and_idempotency(db_session):
+    from app.models import WhatsAppAccount
+    from sqlalchemy import select
+    if not await db_session.scalar(select(WhatsAppAccount.id).where(WhatsAppAccount.account_id==f'cloud:{settings.WHATSAPP_PHONE_NUMBER_ID}')):
+        db_session.add(WhatsAppAccount(account_id=f'cloud:{settings.WHATSAPP_PHONE_NUMBER_ID}',name='Synthetic cloud fixture'))
+        await db_session.commit()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         phone_sender = f"1555{uuid.uuid4().hex[:7]}"
@@ -130,7 +142,7 @@ async def test_whatsapp_webhook_message_event_and_idempotency(db_session):
             "object": "whatsapp_business_account",
             "entry": [
                 {
-                    "id": "2001547353872902",
+                    "id": "synthetic-business-id",
                     "changes": [
                         {
                             "field": "messages",
@@ -138,7 +150,7 @@ async def test_whatsapp_webhook_message_event_and_idempotency(db_session):
                                 "messaging_product": "whatsapp",
                                 "metadata": {
                                     "display_phone_number": "15556382752",
-                                    "phone_number_id": "1378072262054430",
+                                    "phone_number_id": settings.WHATSAPP_PHONE_NUMBER_ID,
                                 },
                                 "contacts": [
                                     {
@@ -163,7 +175,7 @@ async def test_whatsapp_webhook_message_event_and_idempotency(db_session):
         }
 
         # 1. First webhook delivery
-        resp1 = await client.post("/webhooks/whatsapp", json=payload)
+        resp1 = await signed_post(client,"/webhooks/whatsapp",payload)
         assert resp1.status_code == 200
         data1 = resp1.json()
         assert data1["status"] == "ok"
@@ -181,7 +193,7 @@ async def test_whatsapp_webhook_message_event_and_idempotency(db_session):
         assert conv.channel == "whatsapp"
 
         # 4. Redelivery of same message (deduplication)
-        resp2 = await client.post("/webhooks/whatsapp", json=payload)
+        resp2 = await signed_post(client,"/webhooks/whatsapp",payload)
         assert resp2.status_code == 200
         data2 = resp2.json()
         assert data2["status"] == "ok"

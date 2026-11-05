@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserBase(BaseModel):
@@ -21,6 +21,7 @@ class UserLogin(BaseModel):
 
 
 class UserRead(UserBase):
+    permissions: list[str] = Field(default_factory=list)
     model_config = ConfigDict(from_attributes=True)
 
     id: int

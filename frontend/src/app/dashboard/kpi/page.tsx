@@ -22,6 +22,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { PageHeader, EmptyState, DataError } from "@/components/WorkspaceUI";
+import {can} from '@/permissions';
 import { useAuth } from "@/contexts/AuthContext";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,7 @@ const KPI_CATEGORIES = [
 
 export default function KPISellersPage() {
   const { user } = useAuth();
-  const canManageKPI = user?.role === "admin" || user?.role === "lead_manager" || Boolean(user?.is_superuser);
+  const canManageKPI = can(user,'kpi.legacy_manage');
 
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [selectedSellerId, setSelectedSellerId] = useState<number | null>(null);
@@ -89,7 +90,8 @@ export default function KPISellersPage() {
   }, [selectedSellerId]);
 
   useEffect(() => {
-    fetchSellers();
+    const timer=setTimeout(() => void fetchSellers(),0);
+    return () => clearTimeout(timer);
   }, [fetchSellers]);
 
   const activeSeller = sellers.find((s) => s.id === selectedSellerId) || sellers[0] || null;

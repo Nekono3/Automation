@@ -34,7 +34,7 @@ async def list_deals(
     current_user: User = Depends(get_current_user),
 ):
     """List deals filtered by pipeline type (SALES, ADMISSION) or customer."""
-    return await DealService.list_deals(db, pipeline_type=pipeline_type, customer_id=customer_id)
+    return await DealService.list_deals(db, pipeline_type=pipeline_type, customer_id=customer_id, user=current_user)
 
 
 @router.post("", response_model=DealRead, status_code=status.HTTP_201_CREATED)

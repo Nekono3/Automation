@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { Plus, Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import {can} from '@/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, DataError, EmptyState } from '@/components/WorkspaceUI';
 import { CompanyModal, Field, Notice, Loading } from '@/components/CompanyUI';
@@ -14,7 +15,7 @@ function Finance() {
   const { user } = useAuth();
   const params = useSearchParams();
   const studentId = params.get('student_id') || '';
-  const canManage = user?.role === 'admin' || user?.role === 'lead_manager';
+  const canManage = can(user,'finance.read');
   const [directory, setDirectory] = useState<Directory>({ users: [], categories: [], countries: [] });
   const [students, setStudents] = useState<{ id: number; full_name: string }[]>([]);
   const [data, setData] = useState<Page<Transaction>>({ total: 0, items: [] });
@@ -45,7 +46,7 @@ function Finance() {
     } catch (e) { setError(errorText(e)); } finally { setLoading(false); }
   }, [canManage, start, end, currency, category, studentId, offset, showVoided]);
   useEffect(() => { const timer = setTimeout(() => void load(),0); return () => clearTimeout(timer); }, [load]);
-  useEffect(() => { if (canManage) api.getEnrolledStudents({ limit: 1000 }).then(setStudents).catch(() => {}); }, [canManage]);
+  useEffect(() => { if (canManage) api.company<{id:number;full_name:string}[]>('/finance/students').then(setStudents).catch(() => {}); }, [canManage]);
   const open = (value: 'transaction' | 'category') => { setFormError(''); setModal(value); };
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setFormError('');
@@ -61,7 +62,7 @@ function Finance() {
       await load();
     } catch (e) { setFormError(errorText(e)); } finally { setSaving(false); }
   }
-  if (!canManage) return <Notice>Финансовый модуль доступен администратору и РОП.</Notice>;
+  if (!canManage) return <Notice>Для финансового модуля требуется разрешение директора.</Notice>;
   return <div className="company-page company-stack">
     <PageHeader eyebrow="УПРАВЛЕНИЕ КОМПАНИЕЙ" title="Финансы" description="Доходы, расходы и прибыль. Каждая валюта учитывается отдельно.">
       <button className="company-button" onClick={() => open('category')}>Категория</button>

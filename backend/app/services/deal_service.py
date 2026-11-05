@@ -20,6 +20,7 @@ class DealService:
         db: AsyncSession,
         pipeline_type: Optional[str] = None,
         customer_id: Optional[int] = None,
+            user=None,
     ) -> List[Deal]:
         stmt = (
             select(Deal)
@@ -29,6 +30,10 @@ class DealService:
             )
             .order_by(Deal.updated_at.desc())
         )
+        if user is not None:
+            from app.core.permissions import customer_clause
+            query_customers=select(Customer.id).where(await customer_clause(db,user))
+            stmt=stmt.where(Deal.customer_id.in_(query_customers))
         if pipeline_type:
             stmt = stmt.where(Deal.pipeline_type == pipeline_type)
         if customer_id:

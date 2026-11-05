@@ -3,6 +3,7 @@ import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Upload, Download, ArrowLeft } from 'lucide-react';
 import { api } from '@/lib/api';
+import {can} from '@/permissions';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader, DataError } from '@/components/WorkspaceUI';
 import { CompanyModal, Field, Loading, Notice } from '@/components/CompanyUI';
@@ -10,7 +11,7 @@ import { Directory, Dossier, Contact, money, query, json, errorText } from '@/li
 
 export default function StudentDossier({ params }: { params: Promise<{id:string}> }) {
   const { id } = use(params); const { user } = useAuth();
-  const canManage = user?.role === 'admin' || user?.role === 'lead_manager';
+  const canManage = can(user,'finance.read');
   const [data, setData] = useState<Dossier | null>(null);
   const [directory,setDirectory] = useState<Directory>({users:[],categories:[],countries:[]});
   const [error,setError] = useState(''); const [loading,setLoading] = useState(true);
@@ -63,7 +64,7 @@ export default function StudentDossier({ params }: { params: Promise<{id:string}
     {loading ? <Loading /> : data && <>
       <PageHeader eyebrow={`УЧЕНИК #${data.student.id} · ${data.student.country}`} title={data.student.full_name} description={`${data.student.process_stage} · ${data.student.manager}`}>
         <button className="company-button" onClick={() => { setFormError(''); setModal('stage'); }}>Изменить процесс</button>
-        {canManage && <><button className="company-button" onClick={() => { setCustomerId(String(data.link?.customer_id || '')); setProgramId(String(data.link?.program_id || '')); setFormError(''); setModal('links'); }}>Связи CRM</button><Link className="company-button primary" href={`/dashboard/finance?${query({student_id:id})}`}>Платежи и комиссии</Link></>}
+        {canManage && <><button disabled={!can(user,'students.update_all')} className="company-button" onClick={() => { setCustomerId(String(data.link?.customer_id || '')); setProgramId(String(data.link?.program_id || '')); setFormError(''); setModal('links'); }}>Связи CRM</button><Link className="company-button primary" href={`/dashboard/finance?${query({student_id:id})}`}>Платежи и комиссии</Link></>}
       </PageHeader>
       <div className="company-grid"><section className="company-card"><h2>Поступление</h2><p>Страна: {data.student.country}</p><p>Ответственный: {data.student.manager}</p><p>Контакт: {data.customer ? `${data.customer.name || ''} · ${data.customer.phone || data.customer.email || ''}` : 'Не связан'}</p><p>Университет: {data.program?.university || 'Не выбран'}</p><p>Программа: {data.program?.program_name_ru || 'Не выбрана'}</p>{data.program?.notes && <p>Требования / примечания: {data.program.notes}</p>}</section>
       <section className="company-card"><h2>Следующий шаг</h2><p>{data.student.next_action || 'Не указан'}</p><p>Риск: {data.student.risk || 'Не указан'}</p><p>{data.student.comment}</p><p>Статус: {data.student.is_completed ? 'Завершено' : 'В процессе'}</p></section></div>
@@ -72,10 +73,10 @@ export default function StudentDossier({ params }: { params: Promise<{id:string}
         {data.transactions.length === 0 ? <p>Новых денежных операций пока нет.</p> : <div className="company-table-wrap"><table className="company-table mobile-cards"><thead><tr><th>Дата</th><th>Сумма</th><th>Этап</th><th>Получатель / комиссия</th></tr></thead><tbody>{data.transactions.map(t => <tr key={t.id}><td data-label="Дата">{t.occurred_on}</td><td data-label="Сумма"><span>{t.kind === 'income' ? '+' : '−'}{money(t.amount,t.currency)}{t.voided_at && <small>Аннулировано</small>}</span></td><td data-label="Этап"><span>{t.stage}<small>{t.description}</small></span></td><td data-label="Комиссия">{t.recipient || '—'}{t.commission_percent != null && ` · ${t.commission_percent}%`}</td></tr>)}</tbody></table></div>}
       </section>}
       <section className="company-card"><h2>Документы</h2><p>PDF, JPEG, PNG, DOCX · до 10 МБ. Скачивание доступно авторизованным сотрудникам.</p>
-        <label className="company-button"><Upload size={16} aria-hidden="true" />{saving ? 'Загрузка…' : 'Загрузить документ'}<input type="file" className="sr-only" disabled={saving} accept=".pdf,.jpg,.jpeg,.png,.docx" onChange={e => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value=''; }} /></label>
+        <label className="company-button"><Upload size={16} aria-hidden="true" />{saving ? 'Загрузка…' : 'Загрузить документ'}<input type="file" className="sr-only" disabled={saving || !can(user,'student_documents.upload')} accept=".pdf,.jpg,.jpeg,.png,.docx" onChange={e => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value=''; }} /></label>
         {notice && <Notice error>{notice}</Notice>}
         {data.documents.length === 0 && <p>Документы пока не загружены.</p>}
-        {data.documents.map(doc => <div className="company-doc" key={doc.id}><span>{doc.name}<small className="company-muted"> · {Math.ceil(doc.size / 1024)} КБ</small></span><div className="company-toolbar"><Field label={`Статус: ${doc.name}`}><select disabled={saving} value={doc.status} onChange={async e => { setSaving(true); setNotice(''); try { await api.company(`/documents/${doc.id}`,json({status:e.target.value},'PATCH')); await load(); } catch(err) { setNotice(errorText(err)); } finally { setSaving(false); } }}><option value="under_review">На проверке</option><option value="accepted">Принят</option><option value="rejected">Отклонён</option></select></Field><button className="company-button" onClick={() => api.downloadStudentDocument(doc.id,doc.name).catch(e => setNotice(errorText(e)))}><Download size={16} aria-hidden="true" />Скачать</button></div></div>)}
+        {data.documents.map(doc => <div className="company-doc" key={doc.id}><span>{doc.name}<small className="company-muted"> · {Math.ceil(doc.size / 1024)} КБ</small></span><div className="company-toolbar"><Field label={`Статус: ${doc.name}`}><select disabled={saving || !can(user,'student_documents.review')} value={doc.status} onChange={async e => { setSaving(true); setNotice(''); try { await api.company(`/documents/${doc.id}`,json({status:e.target.value},'PATCH')); await load(); } catch(err) { setNotice(errorText(err)); } finally { setSaving(false); } }}><option value="under_review">На проверке</option><option value="accepted">Принят</option><option value="rejected">Отклонён</option></select></Field><button className="company-button" onClick={() => api.downloadStudentDocument(doc.id,doc.name).catch(e => setNotice(errorText(e)))}><Download size={16} aria-hidden="true" />Скачать</button></div></div>)}
       </section>
       <section className="company-card"><h2>История изменений</h2>{data.history.length === 0 && <p>Новые изменения появятся здесь.</p>}{data.history.map(log => <div className="company-history" key={log.id}><time dateTime={log.created_at}>{new Date(log.created_at).toLocaleString('ru-RU')}</time><strong>{directory.users.find(u => u.id === log.user_id)?.full_name || `Сотрудник #${log.user_id}`} · {({update:'Обновление карточки',link:'Связи CRM',enroll:'Создание из лида',upload_document:'Загрузка документа',document_status:'Проверка документа'} as Record<string,string>)[log.action] || log.action}</strong><p>{Object.entries(log.extra_data).map(([key,value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`).join(' · ')}</p></div>)}</section>
     </>}

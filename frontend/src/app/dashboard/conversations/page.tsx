@@ -7,10 +7,13 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { CustomerInspector } from "@/components/CustomerInspector";
 import { EmptyState, PageHeader } from "@/components/WorkspaceUI";
 import { api } from "@/lib/api";
+import {useAuth} from "@/contexts/AuthContext";
+import {can} from "@/permissions";
 import { Conversation, Message, Booking, WhatsAppAccount, GlobalAIModeState } from "@/lib/types";
 import { AlertCircle, Bot, Inbox, RefreshCw, UserRound, CheckCircle2, Sparkles, Loader2 } from "lucide-react";
 
 function ConversationsContent() {
+  const {user}=useAuth();
   const searchParams = useSearchParams();
   const targetCustomerId = searchParams.get("customer_id");
   const targetWhatsAppAccount = searchParams.get("whatsapp_account_id");
@@ -234,7 +237,7 @@ function ConversationsContent() {
         </PageHeader>
 
         {/* Global AI Chatbot Controller */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 my-3 shadow-sm transition-all">
+        {can(user,"ai.settings.manage") && <div className="bg-white border border-slate-200/90 rounded-2xl p-4 my-3 shadow-sm transition-all">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
             {/* Left: Info & Live Status */}
             <div className="flex items-start sm:items-center gap-3">
@@ -346,7 +349,7 @@ function ConversationsContent() {
               </div>
             </div>
           </div>
-        </div>
+        </div>}
 
         {globalAiToast && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 mb-3 animate-in fade-in shadow-xs">

@@ -17,11 +17,8 @@ router = APIRouter(prefix="/api/kpi", tags=["Seller KPI"])
 
 
 def check_kpi_manage_permission(user: User):
-    if user.role not in ("admin", "lead_manager") and not getattr(user, "is_superuser", False):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Только Администратор и Главный менеджер (РОП) могут выставлять или изменять баллы KPI",
-        )
+    from app.core.permissions import require
+    require(user,"kpi.legacy_manage")
 
 
 @router.get("/sellers", response_model=List[SellerRead])

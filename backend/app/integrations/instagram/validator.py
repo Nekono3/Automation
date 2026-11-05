@@ -13,11 +13,11 @@ def validate_meta_signature(
 ) -> bool:
     """
     Validates Meta's X-Hub-Signature-256 header using HMAC-SHA256.
-    If app_secret is not configured (e.g. initial dev), logs a warning and returns True.
+    If app_secret is not configured (e.g. initial dev), rejects the request.
     """
     if not app_secret:
-        logger.warning("META_APP_SECRET not configured. Skipping webhook signature verification.")
-        return True
+        logger.warning("META_APP_SECRET not configured. Rejecting webhook request.")
+        return False
 
     if not signature_header or not signature_header.startswith("sha256="):
         logger.error("Missing or malformed X-Hub-Signature-256 header.")

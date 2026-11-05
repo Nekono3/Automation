@@ -9,7 +9,11 @@ from app.models.whatsapp_account import WhatsAppAccount
 from app.schemas.whatsapp_account import WhatsAppAccountCreate, WhatsAppAccountUpdate
 
 logger = logging.getLogger("insta.whatsapp.service")
-BRIDGE_URL = "http://127.0.0.1:3001"
+from app.config import settings
+BRIDGE_URL = settings.BRIDGE_URL
+
+def bridge_headers():
+    return {"Authorization": f"Bearer {settings.BRIDGE_API_TOKEN}"}
 
 
 class WhatsAppAccountService:
@@ -17,7 +21,7 @@ class WhatsAppAccountService:
     async def get_bridge_sessions() -> Dict[str, Any]:
         """Fetch live status of all sessions from WhatsApp Baileys bridge."""
         try:
-            async with httpx.AsyncClient(timeout=4.0) as client:
+            async with httpx.AsyncClient(headers=bridge_headers(), timeout=4.0) as client:
                 resp = await client.get(f"{BRIDGE_URL}/api/sessions")
                 if resp.status_code == 200:
                     return resp.json().get("sessions", {})
@@ -90,7 +94,7 @@ class WhatsAppAccountService:
 
         # Notify bridge to start session
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(headers=bridge_headers(), timeout=5.0) as client:
                 await client.post(
                     f"{BRIDGE_URL}/api/sessions/start",
                     json={"sessionId": account_id, "name": new_acc.name, "role": new_acc.role},
@@ -129,7 +133,7 @@ class WhatsAppAccountService:
 
         # Notify bridge to stop and remove session
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(headers=bridge_headers(), timeout=5.0) as client:
                 await client.post(f"{BRIDGE_URL}/api/sessions/{account_id}/logout")
         except Exception as exc:
             logger.warning("Failed to logout session in bridge: %s", exc)
@@ -139,7 +143,7 @@ class WhatsAppAccountService:
     @staticmethod
     async def disconnect_session(account_id: str) -> bool:
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(headers=bridge_headers(), timeout=5.0) as client:
                 resp = await client.post(f"{BRIDGE_URL}/api/sessions/{account_id}/logout")
                 return resp.status_code == 200
         except Exception as exc:
@@ -149,7 +153,7 @@ class WhatsAppAccountService:
     @staticmethod
     async def restart_session(account_id: str) -> bool:
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(headers=bridge_headers(), timeout=5.0) as client:
                 resp = await client.post(f"{BRIDGE_URL}/api/sessions/{account_id}/restart")
                 return resp.status_code == 200
         except Exception as exc:

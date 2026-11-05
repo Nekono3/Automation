@@ -43,48 +43,7 @@ async def process_and_reply_background(
             logger.info("AI generated empty response or mode changed. No message sent.")
             return
 
-        # 1. Record AI response in database
-        channel = conversation.channel or "instagram"
-        ai_msg, _ = await ConversationService.record_message(
-            db=db,
-            conversation_id=conversation.id,
-            customer_id=customer.id,
-            channel=channel,
-            direction="outbound",
-            sender_type="ai",
-            text=reply_text,
-        )
-        logger.info("Saved AI reply #%d in database for conv #%d (%s)", ai_msg.id, conversation.id, channel)
-
-        # 2. Deliver message to customer via appropriate channel API
-        if channel == "whatsapp" and (customer.whatsapp_id or customer.phone):
-            from app.integrations.whatsapp.client import WhatsAppClient
-            from app.models.whatsapp_account import WhatsAppAccount
-            from sqlalchemy import select
-            wa_client = WhatsAppClient()
-            target_phone = customer.whatsapp_id or customer.phone
-            account_key = None
-            if conversation.whatsapp_account:
-                account_key = conversation.whatsapp_account.account_id
-            elif conversation.whatsapp_account_id:
-                acc_res = await db.execute(
-                    select(WhatsAppAccount).where(WhatsAppAccount.id == conversation.whatsapp_account_id)
-                )
-                acc = acc_res.scalar_one_or_none()
-                if acc:
-                    account_key = acc.account_id
-
-            logger.info("Delivering AI WhatsApp reply to %s via manager session '%s'", target_phone, account_key or "default")
-            send_result = await wa_client.send_text_message(
-                to_phone=target_phone,
-                text=reply_text,
-                account_id=account_key,
-            )
-            logger.info("WhatsApp delivery result for customer %s via session %s: %s", target_phone, account_key, send_result)
-        elif customer.instagram_id:
-            client = InstagramClient()
-            send_result = await client.send_text_message(
-                recipient_id=customer.instagram_id,
-                text=reply_text,
-            )
-            logger.info("Meta Graph API delivery result for customer %s: %s", customer.instagram_id, send_result)
+        await db.refresh(conversation,attribute_names=["mode"])
+        if conversation.mode != "ai":return
+        from app.services.message_delivery import deliver
+        await deliver(db,conversation,reply_text,sender_type='ai')

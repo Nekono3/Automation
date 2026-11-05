@@ -56,7 +56,7 @@ async def get_enrolled_students_stats(
     current_user: User = Depends(get_current_user),
 ):
     """Summary statistics for students admission processes and finance."""
-    return await EnrolledStudentService.get_stats(session=db)
+    return await EnrolledStudentService.get_stats(session=db, user=current_user)
 
 
 @router.get("/{student_id}", response_model=EnrolledStudentRead)

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import get_db
 from app.models.audit import WebhookEvent
+from app.services.webhook_claims import claim_event, finish_event
 from app.services.customer_service import CustomerService
 from app.services.conversation_service import ConversationService
 from app.integrations.instagram.validator import validate_meta_signature
@@ -75,7 +76,7 @@ async def receive_instagram_event(
     try:
         payload = await request.json()
     except Exception as exc:
-        logger.error("Failed to parse JSON body from webhook: %s", exc)
+        logger.error("Integration event processing failed", extra={"error_type": type(exc).__name__})
         return {"status": "error", "message": "Invalid JSON"}
 
     events = parse_instagram_payload(payload)
@@ -89,27 +90,12 @@ async def receive_instagram_event(
 
     for event in events:
         try:
-            # 1. Deduplication via external_message_id check
-            if event.message_id:
-                existing_event = await db.execute(
-                    select(WebhookEvent).where(WebhookEvent.event_id == event.message_id)
-                )
-                if existing_event.scalar_one_or_none():
-                    logger.info("Skipping already processed webhook message ID: %s", event.message_id)
-                    continue
-
-                # Log webhook event for audit & idempotency
-                db.add(
-                    WebhookEvent(
-                        event_id=event.message_id,
-                        source="instagram",
-                        payload=event.raw_event,
-                        status="processed",
-                    )
-                )
+            if not await claim_event(db, event.message_id, 'instagram', event.raw_event):
+                continue
 
             # Skip empty events (e.g. reaction / read receipt without text or attachments)
             if not event.text and not event.attachments:
+                await finish_event(db, event.message_id, 'ignored')
                 continue
 
             # 2. Handle Echo messages (messages sent by the business page itself)
@@ -138,6 +124,7 @@ async def receive_instagram_event(
                     if not recent_out.external_message_id and event.message_id:
                         recent_out.external_message_id = event.message_id
                     logger.info("Matched echo to existing outbound message #%d (conv #%d)", recent_out.id, conv.id)
+                    await finish_event(db, event.message_id)
                     processed_count += 1
                     continue
 
@@ -152,6 +139,7 @@ async def receive_instagram_event(
                     external_message_id=event.message_id,
                     attachments=event.attachments,
                 )
+                await finish_event(db, event.message_id)
                 processed_count += 1
                 continue
 
@@ -178,7 +166,7 @@ async def receive_instagram_event(
                         await db.commit()
                         await DealService.sync_customer_deal_title(db, customer.id)
                 except Exception as exc:
-                    logger.warning("Failed to enrich Instagram profile: %s", exc)
+                    logger.warning("Integration event processing failed")
 
             conv, _ = await ConversationService.get_or_create_conversation(
                 db=db, customer_id=customer.id
@@ -208,10 +196,11 @@ async def receive_instagram_event(
                         incoming_text=event.text,
                     )
 
+            await finish_event(db, event.message_id)
             processed_count += 1
 
         except Exception as exc:
-            logger.error("Failed processing Instagram event %s: %s", event.message_id, exc)
+            logger.error("Integration event processing failed", extra={"error_type": type(exc).__name__})
 
     # 4. Handle Instagram Comment Events (field == 'comments', e.g. Reels/Post comments)
     if comment_events:
@@ -221,22 +210,8 @@ async def receive_instagram_event(
 
         for comment in comment_events:
             try:
-                # Deduplicate comments
-                existing_comment = await db.execute(
-                    select(WebhookEvent).where(WebhookEvent.event_id == f"comment_{comment.comment_id}")
-                )
-                if existing_comment.scalar_one_or_none():
-                    logger.info("Skipping already processed comment ID: %s", comment.comment_id)
+                if not comment.comment_id or not await claim_event(db, f'comment_{comment.comment_id}', 'instagram_comment', comment.raw_event):
                     continue
-
-                db.add(
-                    WebhookEvent(
-                        event_id=f"comment_{comment.comment_id}",
-                        source="instagram_comment",
-                        payload=comment.raw_event,
-                        status="processed",
-                    )
-                )
 
                 logger.info("Integration event processed")
 
@@ -302,7 +277,7 @@ async def receive_instagram_event(
                                     from app.services.deal_service import DealService
                                     await DealService.sync_customer_deal_title(db, customer.id)
                             except Exception as exc:
-                                logger.warning("Failed to enrich comment author profile: %s", exc)
+                                logger.warning("Integration event processing failed")
 
                         conv, _ = await ConversationService.get_or_create_conversation(
                             db=db, customer_id=customer.id
@@ -330,15 +305,17 @@ async def receive_instagram_event(
                             sender_type="ai",
                             text=dm_text,
                             external_message_id=dm_res.get("message_id") if isinstance(dm_res, dict) else None,
+                            status="sent" if isinstance(dm_res, dict) and dm_res.get("message_id") and not dm_res.get("error") else "failed",
                         )
 
+                    await finish_event(db, f"comment_{comment.comment_id}")
                     processed_count += 1
 
                 else:
-                    logger.info("Integration event processed")
+                    await finish_event(db, f"comment_{comment.comment_id}", "ignored")
 
             except Exception as exc:
-                logger.error("Error processing comment event %s: %s", comment.comment_id, exc)
+                logger.error("Integration event processing failed", extra={"error_type": type(exc).__name__})
 
     await db.commit()
     return {"status": "ok", "events_processed": processed_count}
@@ -398,7 +375,7 @@ async def receive_whatsapp_event(
     try:
         payload = await request.json()
     except Exception as exc:
-        logger.error("Failed to parse JSON body from WhatsApp webhook: %s", exc)
+        logger.error("Integration event processing failed", extra={"error_type": type(exc).__name__})
         return {"status": "error", "message": "Invalid JSON"}
 
     from app.integrations.whatsapp.parser import parse_whatsapp_payload
@@ -411,26 +388,12 @@ async def receive_whatsapp_event(
 
     for event in events:
         try:
-            # 1. Deduplication via message_id check
-            if event.message_id:
-                existing_event = await db.execute(
-                    select(WebhookEvent).where(WebhookEvent.event_id == event.message_id)
-                )
-                if existing_event.scalar_one_or_none():
-                    logger.info("Skipping already processed WhatsApp message ID: %s", event.message_id)
-                    continue
-
-                db.add(
-                    WebhookEvent(
-                        event_id=event.message_id,
-                        source="whatsapp",
-                        payload=event.raw_event,
-                        status="processed",
-                    )
-                )
+            if not await claim_event(db, event.message_id, 'whatsapp', event.raw_event):
+                continue
 
             # Skip empty messages without text
             if not event.text:
+                await finish_event(db, event.message_id, 'ignored')
                 continue
 
             # 2. Lookup or create customer by phone number / wa_id
@@ -479,10 +442,11 @@ async def receive_whatsapp_event(
                         incoming_text=event.text,
                     )
 
+            await finish_event(db, event.message_id)
             processed_count += 1
 
         except Exception as exc:
-            logger.error("Failed processing WhatsApp event %s: %s", event.message_id, exc)
+            logger.error("Integration event processing failed", extra={"error_type": type(exc).__name__})
 
     await db.commit()
     return {"status": "ok", "events_processed": processed_count}
@@ -550,23 +514,11 @@ async def receive_whatsapp_bridge_event(
     account_key = payload.account_id
     logger.info("Integration event processed")
 
-    # 1. Deduplication via message_id check
-    if payload.message_id:
-        existing_event = await db.execute(
-            select(WebhookEvent).where(WebhookEvent.event_id == payload.message_id)
-        )
-        if existing_event.scalar_one_or_none():
-            logger.info("Skipping already processed WhatsApp bridge message ID: %s", payload.message_id)
-            return {"status": "ok", "duplicate": True}
-
-        db.add(
-            WebhookEvent(
-                event_id=payload.message_id,
-                source="whatsapp_bridge",
-                payload={"account_id": account_key, "phone": display_phone, "jid": reply_target, "text": payload.text},
-                status="processed",
-            )
-        )
+    if not payload.message_id:
+        raise HTTPException(422, "Message ID required")
+    if not await claim_event(db, payload.message_id, 'whatsapp_bridge',
+                             {'account_id': account_key, 'phone': display_phone, 'jid': reply_target, 'text': payload.text}):
+        return {"status": "ok", "duplicate": True}
 
     # 3. Get or create customer by phone number
     customer, _ = await CustomerService.get_or_create_by_whatsapp_id(
@@ -608,5 +560,6 @@ async def receive_whatsapp_bridge_event(
             incoming_text=payload.text,
         )
 
+    await finish_event(db, payload.message_id)
     return {"status": "ok", "conversation_id": conv.id}
 

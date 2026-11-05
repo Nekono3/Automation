@@ -336,12 +336,20 @@ async def upload_document(student_id: int, request: Request, name: str = Query(m
     from app.core.files import validate_document
     name=validate_document(bytes(content),content_type,name)
     key = uuid4().hex
-    await asyncio.to_thread(PRIVATE_DOCUMENTS.mkdir, parents=True, exist_ok=True, mode=0o700)
     import os
     def write_private():
         with os.fdopen(os.open(PRIVATE_DOCUMENTS / key,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),"wb") as output:
             output.write(content)
-    await asyncio.to_thread(write_private)
+    try:
+        await asyncio.to_thread(PRIVATE_DOCUMENTS.mkdir, parents=True, exist_ok=True, mode=0o700)
+        await asyncio.to_thread(write_private)
+    except OSError:
+        # A partial file must never become a document record; do not expose paths.
+        try:
+            await asyncio.to_thread((PRIVATE_DOCUMENTS / key).unlink, missing_ok=True)
+        except OSError:
+            pass
+        raise HTTPException(503, "Хранилище документов временно недоступно") from None
     doc = StudentDocument(student_id=student_id, name=name, storage_key=key, content_type=content_type,
                           size=len(content), uploaded_by=user.id)
     db.add(doc)

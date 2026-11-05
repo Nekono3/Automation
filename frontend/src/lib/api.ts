@@ -2,17 +2,22 @@ import { LoginResponse, User, Conversation, Message, Customer, Booking, Service,
 
 
 function getApiUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (configured === 'same-origin') return '';
+  if (configured) return configured.replace(/\/$/, '');
   if (typeof window !== 'undefined') {
     const { protocol, hostname, port, origin } = window.location;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:8000';
-    }
-    if (port === '3000') {
+    if (protocol === 'http:' && port === '3000') {
       return `${protocol}//${hostname}:8000`;
     }
     return origin;
   }
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+}
+
+type QueryParams = Record<string, string | number | boolean | undefined>;
+function queryString(params: QueryParams = {}): string {
+  return new URLSearchParams(Object.entries(params).filter((entry) => entry[1] !== undefined).map(([key, value]) => [key, String(value)])).toString();
 }
 
 class ApiClient {
@@ -37,8 +42,12 @@ class ApiClient {
     const response = await fetch(`${getApiUrl()}/api${endpoint}`, {
       ...options,
       headers,
+      signal: options.signal ?? AbortSignal.timeout(20000),
     });
 
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('crm:session-expired'));
+    }
     if (!response.ok) {
       const error = await response.json().catch(() => null);
       throw new Error(typeof error?.detail === 'string' ? error.detail : `Ошибка запроса (${response.status})`);
@@ -78,6 +87,7 @@ class ApiClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password }),
+      signal: AbortSignal.timeout(20000),
     });
     if (!response.ok) throw new Error('Login failed');
     return response.json();
@@ -87,8 +97,8 @@ class ApiClient {
     return this.request<User>('/auth/me');
   }
 
-  async getConversations(params?: any): Promise<Conversation[]> {
-    const qs = new URLSearchParams(params || {}).toString();
+  async getConversations(params?: QueryParams): Promise<Conversation[]> {
+    const qs = queryString(params);
     return this.request<Conversation[]>(`/conversations?${qs}`);
   }
 
@@ -103,6 +113,7 @@ class ApiClient {
   async sendMessage(id: string, text: string): Promise<Message> {
     return this.request<Message>(`/conversations/${id}/messages`, {
       method: 'POST',
+      headers: { 'Idempotency-Key': crypto.randomUUID() },
       body: JSON.stringify({ text }),
     });
   }
@@ -129,7 +140,7 @@ class ApiClient {
     });
   }
 
-  async updateConversation(id: string, data: any): Promise<Conversation> {
+  async updateConversation(id: string, data: Record<string, unknown>): Promise<Conversation> {
     return this.request<Conversation>(`/conversations/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -144,15 +155,15 @@ class ApiClient {
     return this.request<Customer>(`/customers/${id}`);
   }
 
-  async updateCustomer(id: string, data: any): Promise<Customer> {
+  async updateCustomer(id: string, data: Record<string, unknown>): Promise<Customer> {
     return this.request<Customer>(`/customers/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
-  async getBookings(params?: any): Promise<Booking[]> {
-    const qs = new URLSearchParams(params || {}).toString();
+  async getBookings(params?: QueryParams): Promise<Booking[]> {
+    const qs = queryString(params);
     return this.request<Booking[]>(`/bookings?${qs}`);
   }
 
@@ -180,22 +191,22 @@ class ApiClient {
     return this.request<import('./types').AutomationTrigger[]>('/automations');
   }
 
-  async createAutomation(data: any): Promise<import('./types').AutomationTrigger> {
-    return this.request<import('./types').AutomationTrigger[]>('/automations', {
+  async createAutomation(data: Record<string, unknown>): Promise<import('./types').AutomationTrigger> {
+    return this.request<import('./types').AutomationTrigger>('/automations', {
       method: 'POST',
       body: JSON.stringify(data),
-    }) as any;
+    });
   }
 
-  async updateAutomation(id: number, data: any): Promise<import('./types').AutomationTrigger> {
+  async updateAutomation(id: number, data: Record<string, unknown>): Promise<import('./types').AutomationTrigger> {
     return this.request<import('./types').AutomationTrigger>(`/automations/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteAutomation(id: number): Promise<any> {
-    return this.request<any>(`/automations/${id}`, {
+  async deleteAutomation(id: number): Promise<unknown> {
+    return this.request<unknown>(`/automations/${id}`, {
       method: 'DELETE',
     });
   }
@@ -227,7 +238,7 @@ class ApiClient {
     return this.request<import('./types').Deal[]>(`/deals?${params.toString()}`);
   }
 
-  async createDeal(data: any): Promise<import('./types').Deal> {
+  async createDeal(data: Record<string, unknown>): Promise<import('./types').Deal> {
     return this.request<import('./types').Deal>('/deals', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -241,8 +252,8 @@ class ApiClient {
     });
   }
 
-  async updateChecklistStatus(checklistId: number, status: string, file_url?: string): Promise<any> {
-    return this.request<any>(`/deals/checklists/${checklistId}`, {
+  async updateChecklistStatus(checklistId: number, status: string, file_url?: string): Promise<unknown> {
+    return this.request<unknown>(`/deals/checklists/${checklistId}`, {
       method: 'PATCH',
       body: JSON.stringify({ status, file_url }),
     });
@@ -253,7 +264,7 @@ class ApiClient {
     return this.request<import('./types').StudentProfile>(`/students/${customerId}/profile`);
   }
 
-  async updateStudentProfile(customerId: string, data: any): Promise<import('./types').StudentProfile> {
+  async updateStudentProfile(customerId: string, data: Record<string, unknown>): Promise<import('./types').StudentProfile> {
     return this.request<import('./types').StudentProfile>(`/students/${customerId}/profile`, {
       method: 'PATCH',
       body: JSON.stringify(data),

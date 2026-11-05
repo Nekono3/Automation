@@ -52,7 +52,7 @@ function migrateLegacyAuthIfNeeded() {
         try {
           fs.copyFileSync(fullPath, path.join(account1Dir, file));
         } catch (e) {
-          console.error(`Failed to copy ${file}:`, e);
+          console.error(`Failed to copy ${file}:`);
         }
       }
     }
@@ -121,7 +121,7 @@ class SessionInstance {
           try {
             this.qrImageBase64 = await QRCode.toDataURL(qr);
           } catch (err) {
-            console.error(`[WhatsApp Bridge][${this.sessionId}] QR Error:`, err);
+            console.error(`[WhatsApp Bridge][${this.sessionId}] QR Error:`);
           }
           console.log(`[WhatsApp Bridge][${this.sessionId}] New QR generated for pairing.`);
         }
@@ -150,7 +150,7 @@ class SessionInstance {
           this.qrImageBase64 = null;
           const jid = this.sock.user?.id || '';
           this.connectedPhone = jid.split(':')[0] || jid.split('@')[0];
-          console.log(`[WhatsApp Bridge][${this.sessionId}] CONNECTED! Phone: +${this.connectedPhone}`);
+          console.log(`[WhatsApp Bridge][${this.sessionId}] CONNECTED`);
         }
       });
 
@@ -183,7 +183,7 @@ class SessionInstance {
           // Check for message revocation ("Delete for everyone")
           const protocolMsg = msg.message?.protocolMessage;
           if (protocolMsg && protocolMsg.type === 0 && protocolMsg.key?.id) {
-            console.log(`[WhatsApp Bridge][${this.sessionId}] Detected message revocation for ID: ${protocolMsg.key.id}`);
+            console.log(`[WhatsApp Bridge][${this.sessionId}] Message revocation received`);
             this.forwardToCRM({
               account_id: this.sessionId,
               event_type: 'revoke',
@@ -217,7 +217,7 @@ class SessionInstance {
       this.sock.ev.on('messages.update', (updates) => {
         for (const update of updates) {
           if (update.update?.message === null && update.key?.id) {
-            console.log(`[WhatsApp Bridge][${this.sessionId}] Message deleted in WhatsApp: ${update.key.id}`);
+            console.log(`[WhatsApp Bridge][${this.sessionId}] Message deletion received`);
             this.forwardToCRM({
               account_id: this.sessionId,
               event_type: 'revoke',
@@ -227,7 +227,7 @@ class SessionInstance {
         }
       });
     } catch (err) {
-      console.error(`[WhatsApp Bridge][${this.sessionId}] Start error:`, err);
+      console.error(`[WhatsApp Bridge][${this.sessionId}] Start error:`);
     }
   }
 
@@ -253,12 +253,12 @@ class SessionInstance {
       );
       req.setTimeout(8000, () => req.destroy(new Error('CRM timeout')));
       req.on('error', (err) => {
-        console.error(`[WhatsApp Bridge][${this.sessionId}] CRM forward error:`, err.message);
+        console.error(`[WhatsApp Bridge][${this.sessionId}] CRM forward error:`);
       });
       req.write(payload);
       req.end();
     } catch (err) {
-      console.error(`[WhatsApp Bridge][${this.sessionId}] Forward payload error:`, err);
+      console.error(`[WhatsApp Bridge][${this.sessionId}] Forward payload error:`);
     }
   }
 
@@ -281,7 +281,7 @@ class SessionInstance {
         fs.mkdirSync(this.authDir, { recursive: true });
       }
     } catch (e) {
-      console.error(`[WhatsApp Bridge][${this.sessionId}] Error clearing auth dir:`, e);
+      console.error(`[WhatsApp Bridge][${this.sessionId}] Error clearing auth dir:`);
     }
     // Restart to trigger fresh QR
     setTimeout(() => this.start(), 1500);
@@ -458,8 +458,8 @@ app.post('/send', async (req, res) => {
     const result = await session.sendMessage(to, text);
     res.json(result);
   } catch (err) {
-    console.error(`[WhatsApp Bridge] Send error:`, err);
-    res.status(500).json({ error: err.message });
+    console.error(JSON.stringify({event:'bridge_send_failed', account_id}));
+    res.status(502).json({ error: 'Provider delivery failed' });
   }
 });
 
@@ -716,7 +716,12 @@ app.get(['/', '/qr', '/whatsapp-qr'], (req, res) => {
 });
 
 // Start Express server
-app.listen(PORT, process.env.BRIDGE_HOST || '127.0.0.1', () => {
-  console.log(`[WhatsApp Bridge] Multi-account server running on port ${PORT}`);
-  initAllSessions();
-});
+function start() {
+  return app.listen(PORT, process.env.BRIDGE_HOST || '127.0.0.1', () => {
+    console.log(`[WhatsApp Bridge] Multi-account server running on port ${PORT}`);
+    if (process.env.BRIDGE_AUTO_START !== 'false') initAllSessions();
+  });
+}
+if (require.main === module) start();
+// Importing the actual HTTP application for isolated tests never pairs an account.
+module.exports = {app, sessions, start};

@@ -298,7 +298,7 @@ function ConversationsContent() {
                 <span className="text-slate-400 text-[11px] font-medium">Канал:</span>
                 <select
                   value={channelScope}
-                  onChange={(e) => setChannelScope(e.target.value as any)}
+                  onChange={(e) => setChannelScope(e.target.value as typeof channelScope)}
                   className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer text-xs"
                 >
                   <option value="all">Все (WhatsApp + Insta)</option>

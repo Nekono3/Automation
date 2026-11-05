@@ -1,0 +1,14 @@
+{
+    auto_https off
+    admin off
+}
+https://localhost:8443, https://127.0.0.1:8443 {
+    tls /etc/staging-tls/cert.pem /etc/staging-tls/key.pem
+    @backend path /api/* /webhooks/* /guides/* /privacy /terms
+    handle @backend {
+        reverse_proxy backend:8000
+    }
+    handle {
+        reverse_proxy frontend:3000
+    }
+}

@@ -111,3 +111,11 @@ Generated from the actual FastAPI OpenAPI schema for this iteration. Authenticat
 | GET | `/webhooks/whatsapp` | Public or specialized authentication; see handler |
 | POST | `/webhooks/whatsapp` | Public or specialized authentication; see handler |
 | POST | `/webhooks/whatsapp-bridge` | Public or specialized authentication; see handler |
+
+## Iteration 01.5 additions / compatible changes
+
+- `GET /api/ready`: public readiness, 200/503, DB revision validation; existing health contract retained.
+- `PUT /api/security/teams/{team_id}`: director-controlled membership replacement, validated employees, audit.
+- `PUT /api/security/users/{user_id}/whatsapp-account`: explicit numeric account PK/null, no guessed production mapping, conflicting owner409, released assignments/audit.
+- `POST /api/conversations/{conversation_id}/messages`: optional Idempotency-Key header (8–128 chars), replay saved result or409; existing response schema unchanged.
+- `GET /api/enrolled-students/stats`: read_all/read_assigned; SQL scope applied to every aggregate; mentor sees assigned statistics only.

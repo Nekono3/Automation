@@ -52,9 +52,9 @@ export default function WhatsAppManagementPage() {
   }, []);
 
   useEffect(() => {
-    fetchAccounts();
+    const initial = setTimeout(() => void fetchAccounts(), 0);
     const interval = setInterval(fetchAccounts, 4000);
-    return () => clearInterval(interval);
+    return () => { clearTimeout(initial); clearInterval(interval); };
   }, [fetchAccounts]);
 
   const handleOpenCreate = () => {

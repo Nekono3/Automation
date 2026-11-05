@@ -53,6 +53,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => { active = false; };
   }, [router]);
 
+  useEffect(() => {
+    const expire = () => {
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      router.replace('/');
+    };
+    window.addEventListener('crm:session-expired', expire);
+    return () => window.removeEventListener('crm:session-expired', expire);
+  }, [router]);
+
   const login = (newToken: string, userData: User) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);

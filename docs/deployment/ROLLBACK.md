@@ -7,3 +7,7 @@ For a failed staging release, stop workers and affected services, preserve failu
 For database recovery, restore a verified dump into an isolated database first and compare original IDs, finance values, KPI scores, role data and migration revision. A full database restore discards writes since the dump, so reconcile pending webhooks, outbound deliveries and files before cutover. Restore private document/session files under their original access controls. Do not log or publish recovered secrets.
 
 The automated test verifies pg_dump/restore using synthetic databases only. Production backups and restore procedures have not been exercised in this iteration. The earlier `/root/insta-backups/company-20261103-054502` backup was created by the preceding deployment; its existence is not claimed as a verified production restore.
+
+## Iteration01.5 rollback
+
+Новой schema revision нет: 0002_security сохраняется. Возврат к Iteration01 совместим со схемой, но убирает новые guards/idempotency и fixes. Остановить отправки до согласованного code rollback; не replay claimed/pending вручную без reconciliation. Не выполнять Alembic destructive downgrade. Возврат к legacy production-коду требует отдельного review совместимости; local synthetic restore не заменяет production recovery drill.

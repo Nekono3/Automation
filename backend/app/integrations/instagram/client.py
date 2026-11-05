@@ -52,9 +52,11 @@ class InstagramClient:
                     return data
                 else:
                     logger.info("Integration event processed")
-                    return {"error": response.text, "status_code": response.status_code}
+                    return {"error": "provider_rejected", "status_code": response.status_code}
             except Exception as exc:
-                logger.error("Exception calling Meta Graph API: %s", exc)
+                logger.error("Meta provider request failed")
+                return {"error": "provider_unavailable"}
+
     async def reply_to_comment(
         self,
         comment_id: str,
@@ -85,10 +87,10 @@ class InstagramClient:
                     return data
                 else:
                     logger.info("Integration event processed")
-                    return {"error": response.text, "status_code": response.status_code}
+                    return {"error": "provider_rejected", "status_code": response.status_code}
             except Exception as exc:
-                logger.error("Exception replying to comment: %s", exc)
-                return {"error": str(exc)}
+                logger.error("Meta provider request failed")
+                return {"error": "provider_unavailable"}
 
     async def send_private_reply(
         self,
@@ -123,10 +125,10 @@ class InstagramClient:
                     return data
                 else:
                     logger.info("Integration event processed")
-                    return {"error": response.text, "status_code": response.status_code}
+                    return {"error": "provider_rejected", "status_code": response.status_code}
             except Exception as exc:
-                logger.error("Exception sending private reply: %s", exc)
-                return {"error": str(exc)}
+                logger.error("Meta provider request failed")
+                return {"error": "provider_unavailable"}
 
     async def get_account_profile(self) -> Dict[str, Any]:
         """Queries the linked Instagram Business account info."""
@@ -140,9 +142,11 @@ class InstagramClient:
         async with httpx.AsyncClient(timeout=10.0) as client:
             try:
                 resp = await client.get(url, params=params, headers={"Authorization": f"Bearer {self.access_token}"})
+                if resp.status_code != 200:
+                    return {"error": "provider_rejected", "status_code": resp.status_code}
                 return resp.json()
             except Exception as exc:
-                return {"error": str(exc)}
+                return {"error": "provider_unavailable"}
 
     async def get_user_profile(self, user_id: str) -> Dict[str, Any]:
         """
@@ -169,5 +173,5 @@ class InstagramClient:
                     logger.info("Integration event processed")
                     return {}
             except Exception as exc:
-                logger.error("Exception fetching Instagram user profile for %s: %s", user_id, exc)
+                logger.error("Meta provider request failed")
                 return {}

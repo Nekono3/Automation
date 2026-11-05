@@ -207,27 +207,29 @@ class EnrolledStudentService:
         return True
 
     @classmethod
-    async def get_stats(cls, session: AsyncSession) -> EnrolledStudentsStats:
-        total_q = select(func.count(EnrolledStudent.id))
+    async def get_stats(cls, session: AsyncSession, user) -> EnrolledStudentsStats:
+        from app.core.permissions import student_clause
+        scope = await student_clause(session, user)
+        total_q = select(func.count(EnrolledStudent.id)).where(scope)
         total = (await session.execute(total_q)).scalar() or 0
 
-        completed_q = select(func.count(EnrolledStudent.id)).where(EnrolledStudent.is_completed == True)
+        completed_q = select(func.count(EnrolledStudent.id)).where(scope, EnrolledStudent.is_completed == True)
         completed = (await session.execute(completed_q)).scalar() or 0
 
         # Countries
-        c_q = select(EnrolledStudent.country, func.count(EnrolledStudent.id)).group_by(EnrolledStudent.country)
+        c_q = select(EnrolledStudent.country, func.count(EnrolledStudent.id)).where(scope).group_by(EnrolledStudent.country)
         countries_breakdown = {c: count for c, count in (await session.execute(c_q)).all() if c}
 
         # Stages
-        s_q = select(EnrolledStudent.process_stage, func.count(EnrolledStudent.id)).group_by(EnrolledStudent.process_stage)
+        s_q = select(EnrolledStudent.process_stage, func.count(EnrolledStudent.id)).where(scope).group_by(EnrolledStudent.process_stage)
         stages_breakdown = {s: count for s, count in (await session.execute(s_q)).all() if s}
 
         # Managers
-        m_q = select(EnrolledStudent.manager, func.count(EnrolledStudent.id)).group_by(EnrolledStudent.manager)
+        m_q = select(EnrolledStudent.manager, func.count(EnrolledStudent.id)).where(scope).group_by(EnrolledStudent.manager)
         managers_breakdown = {m: count for m, count in (await session.execute(m_q)).all() if m}
 
         # Risks
-        r_q = select(EnrolledStudent.risk, func.count(EnrolledStudent.id)).group_by(EnrolledStudent.risk)
+        r_q = select(EnrolledStudent.risk, func.count(EnrolledStudent.id)).where(scope).group_by(EnrolledStudent.risk)
         risks_breakdown = {r: count for r, count in (await session.execute(r_q)).all() if r}
 
         return EnrolledStudentsStats(

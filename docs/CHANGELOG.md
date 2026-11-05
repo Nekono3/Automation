@@ -18,3 +18,11 @@ Validation results and limitations are appended after final execution. Remaining
 - Production/provider rollout — **not performed**. Only read-only VPS dependency/listener inspection was used. Actual Meta scopes, real WhatsApp/Instagram delivery and production restore remain unverified.
 
 Next.js 16.4.0 was flagged by maintainer advisories and the initial build gate. This branch patches Next.js and eslint-config-next to 16.4.5; the official source is linked in architecture/SECURITY.md.
+
+## 2026-11-05 — Iteration 01.5 (local staging verified; production NO-GO)
+
+- Added isolated Docker staging, generated secrets, synthetic bootstrap/accounts, readiness and DB outage/recovery checks.
+- Fixed clean-install multipart dependency, certifi advisory, API URL selection, invalid-request crashes, file validation/storage errors and provider error disclosure.
+- Added atomic webhook duplicate claims, optional manual-send idempotency, correct failed comment reply status, explicit team/WhatsApp ownership administration.
+- Expanded PostgreSQL preservation/dump/restore, authentication, six-role scopes, communication/files/failure and real HTTPS browser tests; removed full frontend lint errors.
+- No new DB revision or production deployment; durable messaging recovery and approved live-provider / production restore drills remain release blockers.

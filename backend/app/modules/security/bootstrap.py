@@ -1,7 +1,7 @@
 """Explicit empty-database bootstrap. Prints one invitation for secure manual delivery."""
 
 import argparse, asyncio, secrets
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from app.database import AsyncSessionLocal, engine
 from app.models import User
 from app.security.passwords import hash_password
@@ -10,6 +10,8 @@ from app.modules.security.service import issue_invitation
 
 async def main(email, name):
     async with AsyncSessionLocal() as db:
+        # Serialize the empty-install check and creation across concurrent CLI runs.
+        await db.execute(text("SELECT pg_advisory_xact_lock(176930001)"))
         if await db.scalar(select(func.count()).select_from(User)):
             raise SystemExit(
                 "Existing users found. A director must invite employees through the authenticated API."

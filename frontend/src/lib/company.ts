@@ -1,3 +1,4 @@
+import { securityText } from '@/i18n/security';
 export interface Staff { id: number; full_name: string; role: string; whatsapp_account_id: number | null }
 export interface Category { id: number; name: string }
 export interface Directory { users: Staff[]; categories: Category[]; countries: string[] }
@@ -21,7 +22,7 @@ export interface Dossier {
   history: { id: number; action: string; created_at: string; user_id: number; extra_data: Record<string, unknown> }[];
 }
 export const statusNames: Record<string, string> = { new: 'Новый', contacted: 'В работе', qualified: 'Квалифицирован', won: 'Клиент', lost: 'Отказ' };
-export const roleNames: Record<string, string> = { admin: 'Администратор', lead_manager: 'РОП', manager: 'Менеджер', mentor: 'Ментор' };
+export const roleNames: Record<string, string> = { ...securityText.ru.roles, admin: securityText.ru.roles.director, lead_manager: securityText.ru.roles.head_of_sales };
 export const money = (value: string | number, currency: string) => `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(Number(value))} ${currency}`;
 export const today = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`; };
 export const query = (values: Record<string, string | number | null | undefined>) => new URLSearchParams(Object.entries(values).filter(([,v]) => v !== '' && v != null).map(([k,v]) => [k, String(v)])).toString();

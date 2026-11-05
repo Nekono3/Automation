@@ -25,7 +25,7 @@ async function fixture(page:Page,role:string,chat=false) {
     await route.fulfill({json:data});
   });
 }
-for(const width of [1440,375])for(const role of Object.keys(landing)) {
+for(const width of [1440,768,375])for(const role of Object.keys(landing)) {
   test(`${role} landing and permission menu at ${width}px`,async({page})=>{
     await page.setViewportSize({width,height:1000});
     const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
@@ -60,4 +60,30 @@ test('mobile navigation opens by keyboard and Escape restores the trigger',async
   await page.keyboard.press('Escape');
   await expect(trigger).toHaveAttribute('aria-expanded','false');
   await expect(trigger).toBeFocused();
+});
+
+test('session expiration during an API request returns to login',async({page})=>{
+  await fixture(page,'manager');
+  await page.route('**/api/company/leads?**',route=>route.fulfill({status:401,json:{detail:'Expired session'}}));
+  await page.goto('/dashboard/leads');
+  await expect(page).toHaveURL('/');
+  expect(await page.evaluate(()=>localStorage.getItem('token'))).toBeNull();
+});
+test('network timeout keeps the unsent draft and reports failure',async({page})=>{
+  await fixture(page,'director',true);
+  await page.route('**/api/conversations/1/messages',route=>route.request().method()==='POST'?route.abort('timedout'):route.fulfill({json:[]}));
+  await page.goto('/dashboard/conversations?customer_id=123');
+  const input=page.locator('#reply-message');
+  await input.fill('Synthetic timed out message');
+  await page.getByRole('button',{name:'Отправить',exact:true}).click();
+  await expect(input).toHaveValue('Synthetic timed out message');
+  await expect(page.locator('p.form-error[role="alert"]')).toBeVisible();
+});
+test('Russian and Kyrgyz security dictionaries cover all roles',async()=>{
+  const {securityText}=await import('../src/i18n/security');
+  for(const locale of ['ru','ky'] as const){
+    expect(Object.keys(securityText[locale].roles).sort()).toEqual(Object.keys(landing).sort());
+    expect(securityText[locale].deliveryFailed.length).toBeGreaterThan(20);
+    expect(securityText[locale].denied.length).toBeGreaterThan(10);
+  }
 });

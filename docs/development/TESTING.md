@@ -26,3 +26,7 @@ Lint changed/new frontend code and perform browser checks for role menus/landing
 Unverified: real WhatsApp pairing/send/receipts, actual Meta app scopes/private replies, production migration/restore, concurrent exactly-once processing, crash recovery, multi-application admissions and versioned documents. Those latter features are not implemented by this iteration. Final per-iteration commands/results are recorded in docs/CHANGELOG.md.
 
 Browser suite: `node node_modules/@playwright/test/cli.js test` from frontend after building. Install Playwright Chromium, or set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH to an existing compatible executable. Tests launch the local production server on loopback port 3100 and use synthetic API fixtures; no production/provider data is loaded. The six-role menu/landing checks run at 1440px and 375px, followed by failure/draft and keyboard/Escape navigation checks. Backend permissions are verified separately against real isolated PostgreSQL, not inferred from hidden menus.
+
+## Iteration 01.5
+
+Изолированный PostgreSQL: `python scripts/run_staging_tests.py -q` из корня (после staging init/PG startup и `uv sync --extra dev --frozen`). Runner использует fixed test database и staging container, не production .env. Полный local HTTPS UI: `npx playwright test --config playwright.staging.config.ts` из frontend после synthetic seed. Mocked browser suite остаётся `npx playwright test`. Команды, evidence и ограничения: [STAGING_TEST_REPORT](../testing/STAGING_TEST_REPORT.md).

@@ -132,6 +132,7 @@ class ConversationService:
         attachments: Optional[list] = None,
         extra_data: Optional[dict] = None,
         channel: str = "instagram",
+        status: str | None = None,
     ) -> tuple[Message, bool]:
         """
         Records a message idempotently.
@@ -157,7 +158,7 @@ class ConversationService:
             text=text,
             attachments=attachments or [],
             extra_data=extra_data or {},
-            status="received" if direction == "inbound" else "sent",
+            status=status or ("received" if direction == "inbound" else "sent"),
         )
         db.add(message)
 

@@ -26,7 +26,7 @@ for provider_logger in ("httpx", "httpcore", "mistralai"):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager: connects to DB, creates tables, seeds defaults."""
+    """Verify the reviewed database revision without altering data or schema."""
     logger.info("Starting up %s in %s mode...", settings.APP_NAME, settings.ENVIRONMENT)
     # Ordinary startup never mutates schema or imports spreadsheets/staff defaults.
     async with engine.connect() as conn:
@@ -50,6 +50,20 @@ app = FastAPI(
     description="AI-Powered Customer Management & Consultation Booking Platform",
     lifespan=lifespan,
 )
+
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi.responses import JSONResponse
+
+
+async def unavailable_dependency(request, exc):
+    logger.error("Application dependency unavailable", extra={"error_type": type(exc).__name__})
+    return JSONResponse({"detail": "Сервис временно недоступен"}, status_code=503,
+                        headers={"Cache-Control": "no-store"})
+
+
+app.add_exception_handler(SQLAlchemyError, unavailable_dependency)
+app.add_exception_handler(OSError, unavailable_dependency)
+app.add_exception_handler(TimeoutError, unavailable_dependency)
 
 from app.core.http_security import security_response,RequestSizeLimit
 app.add_middleware(RequestSizeLimit)
@@ -119,8 +133,8 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     try:
         result = await db.execute(text("SELECT 1"))
         db_ok = result.scalar() == 1
-    except Exception as exc:
-        logger.error("Health check database query failed: %s", exc)
+    except Exception:
+        logger.error("Health check database query failed")
         db_ok = False
 
     return {
@@ -129,6 +143,17 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         "environment": settings.ENVIRONMENT,
         "database": "connected" if db_ok else "disconnected",
     }
+
+
+@app.get('/api/ready', tags=['Health'])
+async def readiness(db: AsyncSession = Depends(get_db)):
+    from fastapi.responses import JSONResponse
+    try:
+        revision = await db.scalar(text('SELECT version_num FROM alembic_version'))
+        ready = revision == '0002_security'
+    except Exception:
+        ready = False
+    return JSONResponse({'status': 'ready' if ready else 'unavailable'}, status_code=200 if ready else 503)
 
 
 @app.get("/", tags=["Root"])

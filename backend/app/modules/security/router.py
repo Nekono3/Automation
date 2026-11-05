@@ -2,7 +2,7 @@ import secrets
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from app.database import get_db
 from app.api.deps import get_current_user
 from app.core.permissions import (
@@ -14,7 +14,7 @@ from app.core.permissions import (
     team_users,
     check_conversation,
 )
-from app.models import User, AuditLog, EnrolledStudent, Conversation
+from app.models import User, AuditLog, EnrolledStudent, Conversation, WhatsAppAccount
 from app.modules.security.models import (
     Team,
     TeamMember,
@@ -61,6 +61,11 @@ class Assignment(BaseModel):
     object_id: int
     user_id: int
     reason: str = Field(default="", max_length=1000)
+
+
+class AccountOwnership(BaseModel):
+    # Internal numeric WhatsAppAccount.id, not a guessed employee/session mapping.
+    account_id: int | None = Field(default=None, gt=0)
 
 
 @router.get("/catalog")
@@ -177,6 +182,63 @@ async def create_team(
     )
     await db.commit()
     return {"id": team.id}
+
+
+@router.put("/teams/{team_id}")
+async def update_team(team_id: int, data: TeamInput, db=Depends(get_db), actor=Depends(get_current_user)):
+    require(actor, "employees.manage")
+    team = await db.scalar(select(Team).where(Team.id == team_id).with_for_update())
+    if not team:
+        raise HTTPException(404, "Команда не найдена")
+    ids = set(data.user_ids)
+    if set((await db.scalars(select(User.id).where(User.id.in_(ids)))).all()) != ids:
+        raise HTTPException(422, "Указан неизвестный сотрудник")
+    before = list((await db.scalars(select(TeamMember.user_id).where(TeamMember.team_id == team_id))).all())
+    team.name = data.name
+    await db.execute(delete(TeamMember).where(TeamMember.team_id == team_id))
+    db.add_all([TeamMember(team_id=team_id, user_id=uid) for uid in ids])
+    db.add(AuditLog(user_id=actor.id, action="team_updated", entity="team", entity_id=team_id,
+                    extra_data={"before": sorted(before), "after": sorted(ids)}))
+    from sqlalchemy.exc import IntegrityError
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(409, "Команда с таким именем уже существует") from None
+    return {"id": team_id, "user_ids": sorted(ids)}
+
+
+@router.put("/users/{user_id}/whatsapp-account")
+async def set_account_owner(user_id: int, data: AccountOwnership, db=Depends(get_db), actor=Depends(get_current_user)):
+    require(actor, "communication.manage_accounts")
+    # Lock account first so concurrent assignments cannot create two owners.
+    if data.account_id is not None:
+        account = await db.scalar(select(WhatsAppAccount).where(WhatsAppAccount.id == data.account_id).with_for_update())
+        if not account:
+            raise HTTPException(404, "Аккаунт не найден")
+        if await db.scalar(select(User.id).where(User.whatsapp_account_id == account.id, User.id != user_id)):
+            raise HTTPException(409, "Сначала снимите назначение текущего владельца")
+    target = await db.scalar(select(User).where(User.id == user_id).with_for_update())
+    if not target:
+        raise HTTPException(404, "Сотрудник не найден")
+    if data.account_id is not None and (not target.is_active or canonical(target.role) not in ('director', 'head_of_sales', 'manager')):
+        raise HTTPException(422, "Нужен активный сотрудник отдела продаж")
+    before = target.whatsapp_account_id
+    if before != data.account_id:
+        from datetime import datetime, timezone
+        # Backfilled explicit assignments must not retain access after ownership is revoked.
+        conversations = select(Conversation.id).where(Conversation.whatsapp_account_id == before)
+        if before is not None:
+            await db.execute(update(ConversationAssignment).where(
+                ConversationAssignment.user_id == user_id,
+                ConversationAssignment.conversation_id.in_(conversations),
+                ConversationAssignment.released_at.is_(None)
+            ).values(released_at=datetime.now(timezone.utc)))
+        target.whatsapp_account_id = data.account_id
+        db.add(AuditLog(user_id=actor.id, action="whatsapp_owner_changed", entity="user", entity_id=user_id,
+                        extra_data={"before": before, "after": data.account_id}))
+        await db.commit()
+    return {"user_id": user_id, "whatsapp_account_id": target.whatsapp_account_id}
 
 
 @router.post("/student-assignments")

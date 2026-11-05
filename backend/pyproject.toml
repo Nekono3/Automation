@@ -19,6 +19,8 @@ dependencies = [
     "bcrypt>=4.2.0",
     "mistralai>=1.2.0",
     "openpyxl>=3.1.0",
+    "python-multipart>=0.0.20",
+    "certifi>=2026.10.19",
 ]
 
 [project.optional-dependencies]
